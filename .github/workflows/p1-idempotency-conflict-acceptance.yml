@@ -1,0 +1,157 @@
+name: Prototype 1 Idempotency Conflict Acceptance
+
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  conflict:
+    if: github.event.issue.title == '[P1_STATE] IDEMPOTENCY_CONFLICT_ACCEPTANCE'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    env:
+      RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify required secrets are available
+        run: |
+          test -n "$RUNTIME_SECRET"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Verify baseline before conflict request
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT COUNT(*) AS row_count, MAX(version) AS max_version FROM prototype_state_versions WHERE state_key = 'p1-init-issue-19';"             > before-state.json
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT COUNT(*) AS idempotency_row_count, MIN(invocation_id) AS invocation_id, MIN(db_written_at) AS db_written_at FROM prototype_state_versions WHERE idempotency_key = 'p1-transition-key-20';"             > before-idem.json
+
+          cat before-state.json
+          cat before-idem.json
+
+          jq -e '
+            [.. | objects | select(.row_count? == 2 and .max_version? == 2)] | length >= 1
+          ' before-state.json >/dev/null
+
+          jq -e '
+            [.. | objects | select(
+              .idempotency_row_count? == 1 and
+              .invocation_id? == "024cec4f-fe2a-4c3f-9bee-20bc464004ef" and
+              .db_written_at? == "2026-09-22T07:42:13.076Z"
+            )] | length >= 1
+          ' before-idem.json >/dev/null
+
+      - name: Submit conflicting idempotency reuse
+        id: conflict
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESPONSE_FILE="$(mktemp)"
+          REQUEST_FILE="$(mktemp)"
+
+          jq -n '{
+            execution_surface: "CHAT",
+            trigger_mode: "HUMAN",
+            operation: "STATE_COMPARE_AND_SET",
+            state_key: "p1-init-issue-19",
+            expected_version: 1,
+            expected_state: "STATE_1",
+            next_state: "STATE_2_DIFFERENT",
+            idempotency_key: "p1-transition-key-20",
+            source_run_key: "p1-idem-conflict-issue-${{ github.event.issue.number }}"
+          }' > "$REQUEST_FILE"
+
+          HTTP_CODE="$(curl -sS -o "$RESPONSE_FILE" -w '%{http_code}'             -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/state-cas             -H "Authorization: Bearer $RUNTIME_SECRET"             -H 'Content-Type: application/json'             --data-binary @"$REQUEST_FILE")"
+
+          RESPONSE="$(cat "$RESPONSE_FILE")"
+          echo "HTTP: $HTTP_CODE"
+          echo "Runtime response: $RESPONSE"
+
+          test "$HTTP_CODE" = "409"
+          echo "$RESPONSE" | jq -e '
+            .status == "FAILED" and
+            .error == "IDEMPOTENCY_CONFLICT" and
+            .idempotency_key == "p1-transition-key-20" and
+            .state_key == "p1-init-issue-19" and
+            (has("invocation_id") | not)
+          ' >/dev/null
+
+      - name: Verify zero persistence after conflict
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT COUNT(*) AS row_count, MAX(version) AS max_version FROM prototype_state_versions WHERE state_key = 'p1-init-issue-19';"             > after-state.json
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT COUNT(*) AS idempotency_row_count, MIN(invocation_id) AS invocation_id, MIN(db_written_at) AS db_written_at FROM prototype_state_versions WHERE idempotency_key = 'p1-transition-key-20';"             > after-idem.json
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT COUNT(*) AS different_state_count FROM prototype_state_versions WHERE state_key = 'p1-init-issue-19' AND state_value = 'STATE_2_DIFFERENT';"             > after-different.json
+
+          cat after-state.json
+          cat after-idem.json
+          cat after-different.json
+
+          jq -e '
+            [.. | objects | select(.row_count? == 2 and .max_version? == 2)] | length >= 1
+          ' after-state.json >/dev/null
+
+          jq -e '
+            [.. | objects | select(
+              .idempotency_row_count? == 1 and
+              .invocation_id? == "024cec4f-fe2a-4c3f-9bee-20bc464004ef" and
+              .db_written_at? == "2026-09-22T07:42:13.076Z"
+            )] | length >= 1
+          ' after-idem.json >/dev/null
+
+          jq -e '
+            [.. | objects | select(.different_state_count? == 0)] | length >= 1
+          ' after-different.json >/dev/null
+
+      - name: Post conflict success
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "P1_IDEMPOTENCY_CONFLICT_RESULT
+          Status: SUCCESS
+          State_Key: p1-init-issue-19
+          Reused_Idempotency_Key: p1-transition-key-20
+          Different_Next_State: STATE_2_DIFFERENT
+          HTTP: 409
+          Error: IDEMPOTENCY_CONFLICT
+          Persisted_Row_Count: 2
+          Max_Version: 2
+          Idempotency_Row_Count: 1
+          Original_Invocation_ID: 024cec4f-fe2a-4c3f-9bee-20bc464004ef
+          Different_State_Row_Count: 0
+          Zero_New_Rows_Verification: SUCCESS"
+
+      - name: Post conflict failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "P1_IDEMPOTENCY_CONFLICT_RESULT
+          Status: FAILED
+          Inspect the matching GitHub Actions run for the exact failed assertion."
