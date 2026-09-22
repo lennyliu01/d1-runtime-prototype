@@ -1,0 +1,109 @@
+name: Prototype 0 Runtime Invocation Adapter
+
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  invoke:
+    if: github.event.issue.title == '[RUNTIME_INVOCATION] TIME_ROUNDTRIP'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    env:
+      RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
+    steps:
+      - name: Validate invocation and call shared runtime
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$RUNTIME_SECRET"
+
+          BODY="$(jq -r '.issue.body // ""' "$GITHUB_EVENT_PATH")"
+          EXECUTION_SURFACE="$(printf '%s\n' "$BODY" | awk -F': ' '/^Execution_Surface: / {print $2; exit}')"
+          TRIGGER_MODE="$(printf '%s\n' "$BODY" | awk -F': ' '/^Trigger_Mode: / {print $2; exit}')"
+          OPERATION="$(printf '%s\n' "$BODY" | awk -F': ' '/^Operation: / {print $2; exit}')"
+
+          case "$EXECUTION_SURFACE" in CHAT|WORK) ;; *) echo "Invalid Execution_Surface"; exit 21 ;; esac
+          case "$TRIGGER_MODE" in HUMAN|SCHEDULE) ;; *) echo "Invalid Trigger_Mode"; exit 22 ;; esac
+          test "$OPERATION" = "TIME_ROUNDTRIP"
+
+          SOURCE_RUN_KEY="github-issue-${{ github.event.issue.number }}"
+          REQUEST_FILE="$(mktemp)"
+          RESPONSE_FILE="$(mktemp)"
+
+          jq -n             --arg surface "$EXECUTION_SURFACE"             --arg trigger "$TRIGGER_MODE"             --arg source "$SOURCE_RUN_KEY"             '{
+              execution_surface: $surface,
+              trigger_mode: $trigger,
+              operation: "TIME_ROUNDTRIP",
+              source_run_key: $source
+            }' > "$REQUEST_FILE"
+
+          HTTP_CODE="$(curl -sS -o "$RESPONSE_FILE" -w '%{http_code}'             -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/time-roundtrip             -H "Authorization: Bearer $RUNTIME_SECRET"             -H 'Content-Type: application/json'             --data-binary @"$REQUEST_FILE")"
+
+          RESPONSE="$(cat "$RESPONSE_FILE")"
+          echo "Runtime HTTP: $HTTP_CODE"
+          echo "Runtime response: $RESPONSE"
+
+          test "$HTTP_CODE" = "200"
+          echo "$RESPONSE" | jq -e             --arg surface "$EXECUTION_SURFACE"             --arg trigger "$TRIGGER_MODE"             '
+              .status == "SUCCESS" and
+              .execution_surface == $surface and
+              .trigger_mode == $trigger and
+              .operation == "TIME_ROUNDTRIP" and
+              .stored_status == "RECORDED" and
+              (.invocation_id | type == "string" and length > 0) and
+              (.db_written_at | type == "string" and length > 0) and
+              (.db_read_at | type == "string" and length > 0)
+            ' >/dev/null
+
+          echo "execution_surface=$EXECUTION_SURFACE" >> "$GITHUB_OUTPUT"
+          echo "trigger_mode=$TRIGGER_MODE" >> "$GITHUB_OUTPUT"
+          echo "invocation_id=$(echo "$RESPONSE" | jq -r '.invocation_id')" >> "$GITHUB_OUTPUT"
+          echo "db_written_at=$(echo "$RESPONSE" | jq -r '.db_written_at')" >> "$GITHUB_OUTPUT"
+          echo "db_read_at=$(echo "$RESPONSE" | jq -r '.db_read_at')" >> "$GITHUB_OUTPUT"
+          echo "stored_status=$(echo "$RESPONSE" | jq -r '.stored_status')" >> "$GITHUB_OUTPUT"
+          echo "source_run_key=$SOURCE_RUN_KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Return terminal runtime result to exact issue
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          EXECUTION_SURFACE: ${{ steps.runtime.outputs.execution_surface }}
+          TRIGGER_MODE: ${{ steps.runtime.outputs.trigger_mode }}
+          INVOCATION_ID: ${{ steps.runtime.outputs.invocation_id }}
+          DB_WRITTEN_AT: ${{ steps.runtime.outputs.db_written_at }}
+          DB_READ_AT: ${{ steps.runtime.outputs.db_read_at }}
+          STORED_STATUS: ${{ steps.runtime.outputs.stored_status }}
+          SOURCE_RUN_KEY: ${{ steps.runtime.outputs.source_run_key }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "RUNTIME_INVOCATION_RESULT
+          Invocation_ID: $INVOCATION_ID
+          Status: SUCCESS
+          Execution_Surface: $EXECUTION_SURFACE
+          Trigger_Mode: $TRIGGER_MODE
+          Operation: TIME_ROUNDTRIP
+          Stored_Status: $STORED_STATUS
+          DB_Written_At: $DB_WRITTEN_AT
+          DB_Read_At: $DB_READ_AT
+          Source_Run_Key: $SOURCE_RUN_KEY
+          Return_Target: CALLER
+          Transport: GITHUB_ACTIONS"
+
+      - name: Return terminal adapter failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "RUNTIME_INVOCATION_RESULT
+          Status: FAILED
+          Error: ADAPTER_OR_RUNTIME_FAILURE
+          Return_Target: CALLER
+          Transport: GITHUB_ACTIONS"
