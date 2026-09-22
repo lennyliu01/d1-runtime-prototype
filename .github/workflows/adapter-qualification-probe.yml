@@ -1,0 +1,37 @@
+name: Adapter Qualification Probe
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    if: startsWith(github.event.issue.title, '[ADAPTER_PROBE]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Return terminal adapter result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          INVOCATION_ID="$(printf '%s\n' "$ISSUE_BODY" | sed -n 's/^Invocation_ID:[[:space:]]*//p' | head -n 1)"
+
+          if [ -z "$INVOCATION_ID" ]; then
+            RESULT="ADAPTER_PROBE_RESULT
+Status: FAILED
+Reason: INVOCATION_ID_MISSING"
+          else
+            RESULT="ADAPTER_PROBE_RESULT
+Invocation_ID: $INVOCATION_ID
+Status: SUCCESS
+Return_Target: CALLER
+Transport: GITHUB_ACTIONS"
+          fi
+
+          gh api             --method POST             -H "Accept: application/vnd.github+json"             "/repos/$REPOSITORY/issues/$ISSUE_NUMBER/comments"             -f body="$RESULT"
