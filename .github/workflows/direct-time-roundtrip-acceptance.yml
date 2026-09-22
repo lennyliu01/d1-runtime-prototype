@@ -41,8 +41,16 @@ jobs:
           set -euo pipefail
           SOURCE_RUN_KEY="direct-acceptance-issue-${{ github.event.issue.number }}"
           BODY_FILE="$(mktemp)"
+          REQUEST_FILE="$(mktemp)"
 
-          HTTP_CODE="$(curl -sS -o "$BODY_FILE" -w '%{http_code}'             -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/time-roundtrip             -H "Authorization: Bearer $RUNTIME_SECRET"             -H 'Content-Type: application/json'             --data "{"execution_surface":"CHAT","trigger_mode":"HUMAN","operation":"TIME_ROUNDTRIP","source_run_key":"$SOURCE_RUN_KEY"}")"
+          jq -n             --arg source "$SOURCE_RUN_KEY"             '{
+              execution_surface: "CHAT",
+              trigger_mode: "HUMAN",
+              operation: "TIME_ROUNDTRIP",
+              source_run_key: $source
+            }' > "$REQUEST_FILE"
+
+          HTTP_CODE="$(curl -sS -o "$BODY_FILE" -w '%{http_code}'             -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/time-roundtrip             -H "Authorization: Bearer $RUNTIME_SECRET"             -H 'Content-Type: application/json'             --data-binary @"$REQUEST_FILE")"
 
           RESPONSE="$(cat "$BODY_FILE")"
           echo "HTTP: $HTTP_CODE"
