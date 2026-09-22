@@ -1,0 +1,113 @@
+name: Invalid Prototype 0 Request Acceptance
+
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  reject:
+    if: github.event.issue.title == '[TIME_ROUNDTRIP] INVALID_REQUEST_ACCEPTANCE'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    env:
+      RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify required secrets are available
+        run: |
+          test -n "$RUNTIME_SECRET"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Send authenticated invalid envelope
+        id: invalid
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_RUN_KEY="invalid-acceptance-issue-${{ github.event.issue.number }}"
+          BODY_FILE="$(mktemp)"
+          REQUEST_FILE="$(mktemp)"
+
+          jq -n             --arg source "$SOURCE_RUN_KEY"             '{
+              execution_surface: "INVALID",
+              trigger_mode: "HUMAN",
+              operation: "TIME_ROUNDTRIP",
+              source_run_key: $source
+            }' > "$REQUEST_FILE"
+
+          HTTP_CODE="$(curl -sS -o "$BODY_FILE" -w '%{http_code}'             -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/time-roundtrip             -H "Authorization: Bearer $RUNTIME_SECRET"             -H 'Content-Type: application/json'             --data-binary @"$REQUEST_FILE")"
+
+          RESPONSE="$(cat "$BODY_FILE")"
+          echo "HTTP: $HTTP_CODE"
+          echo "Runtime response: $RESPONSE"
+
+          test "$HTTP_CODE" = "400"
+          echo "$RESPONSE" | jq -e '
+            .status == "FAILED" and
+            .error == "INVALID_REQUEST"
+          ' >/dev/null
+
+          echo "source_run_key=$SOURCE_RUN_KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Verify invalid request persisted zero rows
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_RUN_KEY="${{ steps.invalid.outputs.source_run_key }}"
+          QUERY="SELECT COUNT(*) AS row_count FROM prototype_invocations WHERE source_run_key = '$SOURCE_RUN_KEY';"
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "$QUERY" > d1-invalid-result.json
+
+          echo "D1 verification result:"
+          cat d1-invalid-result.json
+
+          jq -e '
+            [
+              .. | objects |
+              select(.row_count? == 0)
+            ] | length >= 1
+          ' d1-invalid-result.json >/dev/null
+
+      - name: Post invalid-request acceptance success
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          SOURCE_RUN_KEY: ${{ steps.invalid.outputs.source_run_key }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "INVALID_REQUEST_DIRECT_RESULT
+          Status: SUCCESS
+          Authenticated: YES
+          Invalid_Field: Execution_Surface=INVALID
+          Expected_HTTP: 400
+          Expected_Error: INVALID_REQUEST
+          Source_Run_Key: $SOURCE_RUN_KEY
+          Persisted_Row_Count: 0
+          Fail_Closed_Verification: SUCCESS"
+
+      - name: Post invalid-request acceptance failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "INVALID_REQUEST_DIRECT_RESULT
+          Status: FAILED
+          Inspect the matching GitHub Actions run for the exact failed assertion."
