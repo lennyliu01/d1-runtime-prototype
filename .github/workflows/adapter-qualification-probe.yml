@@ -7,6 +7,7 @@ on:
 
 jobs:
   probe:
+    if: startsWith(github.event.issue.title, '[ADAPTER_PROBE]')
     runs-on: ubuntu-latest
     permissions:
       contents: read
