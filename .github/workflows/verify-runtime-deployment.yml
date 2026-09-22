@@ -1,0 +1,58 @@
+name: Verify Prototype 0 Runtime Deployment
+
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  verify:
+    if: github.event.issue.title == '[RUNTIME_VERIFY] PROTOTYPE_0_DEPLOYMENT'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Verify deployed persistence-core version
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$(curl -fsS https://d1-runtime-prototype.lennyliu01.workers.dev/)"
+          echo "Root response: $ROOT"
+          echo "$ROOT" | grep -F '"status":"alive"'
+          echo "$ROOT" | grep -F '"version":"prototype0-persistence-core"'
+
+          BODY_FILE="$(mktemp)"
+          HTTP_CODE="$(curl -sS -o "$BODY_FILE" -w '%{http_code}'             -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/time-roundtrip             -H 'Content-Type: application/json'             --data '{"execution_surface":"CHAT","trigger_mode":"HUMAN","operation":"TIME_ROUNDTRIP"}')"
+          BODY="$(cat "$BODY_FILE")"
+          echo "Unauthenticated POST HTTP: $HTTP_CODE"
+          echo "Unauthenticated POST body: $BODY"
+          test "$HTTP_CODE" = "401"
+          echo "$BODY" | grep -F '"status":"FAILED"'
+          echo "$BODY" | grep -F '"error":"UNAUTHORIZED"'
+
+      - name: Post verification success
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "RUNTIME_DEPLOYMENT_RESULT
+          Status: SUCCESS
+          Root_Status: alive
+          Version: prototype0-persistence-core
+          Auth_Gate: UNAUTHORIZED_401
+          RUNTIME_SECRET: configured-and-enforced"
+
+      - name: Post verification failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "RUNTIME_DEPLOYMENT_RESULT
+          Status: FAILED
+          Inspect the matching GitHub Actions run for the exact failed assertion."
