@@ -15,7 +15,7 @@ jobs:
       contents: read
       issues: write
     env:
-      RUNTIME_SECRET: \${{ secrets.RUNTIME_SECRET }}
+      RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
     steps:
       - name: Validate invocation and call shared runtime
         id: runtime
@@ -33,7 +33,7 @@ jobs:
           case "$EXECUTION_SURFACE" in CHAT|WORK) ;; *) echo "Invalid Execution_Surface"; exit 21 ;; esac
           case "$TRIGGER_MODE" in HUMAN|SCHEDULE) ;; *) echo "Invalid Trigger_Mode"; exit 22 ;; esac
 
-          SOURCE_RUN_KEY="github-issue-\${{ github.event.issue.number }}"
+          SOURCE_RUN_KEY="github-issue-${{ github.event.issue.number }}"
           REQUEST_FILE="$(mktemp)"
           RESPONSE_FILE="$(mktemp)"
 
@@ -200,29 +200,29 @@ jobs:
       - name: Return terminal runtime result to exact issue
         if: success()
         env:
-          GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-          REPOSITORY: \${{ github.repository }}
-          ISSUE_NUMBER: \${{ github.event.issue.number }}
-          EXECUTION_SURFACE: \${{ steps.runtime.outputs.execution_surface }}
-          TRIGGER_MODE: \${{ steps.runtime.outputs.trigger_mode }}
-          OPERATION: \${{ steps.runtime.outputs.operation }}
-          HTTP_CODE: \${{ steps.runtime.outputs.http_code }}
-          RUNTIME_STATUS: \${{ steps.runtime.outputs.runtime_status }}
-          RUNTIME_ERROR: \${{ steps.runtime.outputs.runtime_error }}
-          INVOCATION_ID: \${{ steps.runtime.outputs.invocation_id }}
-          DB_WRITTEN_AT: \${{ steps.runtime.outputs.db_written_at }}
-          DB_READ_AT: \${{ steps.runtime.outputs.db_read_at }}
-          STORED_STATUS: \${{ steps.runtime.outputs.stored_status }}
-          STATE_KEY: \${{ steps.runtime.outputs.state_key }}
-          PREVIOUS_VERSION: \${{ steps.runtime.outputs.previous_version }}
-          PREVIOUS_STATE: \${{ steps.runtime.outputs.previous_state }}
-          VERSION: \${{ steps.runtime.outputs.version }}
-          STATE: \${{ steps.runtime.outputs.state }}
-          IDEMPOTENCY_KEY: \${{ steps.runtime.outputs.idempotency_key }}
-          REPLAYED: \${{ steps.runtime.outputs.replayed }}
-          CURRENT_VERSION: \${{ steps.runtime.outputs.current_version }}
-          CURRENT_STATE: \${{ steps.runtime.outputs.current_state }}
-          SOURCE_RUN_KEY: \${{ steps.runtime.outputs.source_run_key }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          EXECUTION_SURFACE: ${{ steps.runtime.outputs.execution_surface }}
+          TRIGGER_MODE: ${{ steps.runtime.outputs.trigger_mode }}
+          OPERATION: ${{ steps.runtime.outputs.operation }}
+          HTTP_CODE: ${{ steps.runtime.outputs.http_code }}
+          RUNTIME_STATUS: ${{ steps.runtime.outputs.runtime_status }}
+          RUNTIME_ERROR: ${{ steps.runtime.outputs.runtime_error }}
+          INVOCATION_ID: ${{ steps.runtime.outputs.invocation_id }}
+          DB_WRITTEN_AT: ${{ steps.runtime.outputs.db_written_at }}
+          DB_READ_AT: ${{ steps.runtime.outputs.db_read_at }}
+          STORED_STATUS: ${{ steps.runtime.outputs.stored_status }}
+          STATE_KEY: ${{ steps.runtime.outputs.state_key }}
+          PREVIOUS_VERSION: ${{ steps.runtime.outputs.previous_version }}
+          PREVIOUS_STATE: ${{ steps.runtime.outputs.previous_state }}
+          VERSION: ${{ steps.runtime.outputs.version }}
+          STATE: ${{ steps.runtime.outputs.state }}
+          IDEMPOTENCY_KEY: ${{ steps.runtime.outputs.idempotency_key }}
+          REPLAYED: ${{ steps.runtime.outputs.replayed }}
+          CURRENT_VERSION: ${{ steps.runtime.outputs.current_version }}
+          CURRENT_STATE: ${{ steps.runtime.outputs.current_state }}
+          SOURCE_RUN_KEY: ${{ steps.runtime.outputs.source_run_key }}
         run: |
           if [ "$OPERATION" = "TIME_ROUNDTRIP" ]; then
             gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "RUNTIME_INVOCATION_RESULT
@@ -276,9 +276,9 @@ jobs:
       - name: Return terminal adapter failure
         if: failure()
         env:
-          GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-          REPOSITORY: \${{ github.repository }}
-          ISSUE_NUMBER: \${{ github.event.issue.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
           gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "RUNTIME_INVOCATION_RESULT
           Status: FAILED
