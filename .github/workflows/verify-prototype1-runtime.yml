@@ -1,0 +1,73 @@
+name: Verify Prototype 1 Runtime Deployment
+
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  verify:
+    if: github.event.issue.title == '[RUNTIME_VERIFY] PROTOTYPE_1_DEPLOYMENT'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Verify deployed Prototype 1 version
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$(curl -fsS https://d1-runtime-prototype.lennyliu01.workers.dev/)"
+          echo "Root response: $ROOT"
+          echo "$ROOT" | grep -F '"status":"alive"'
+          echo "$ROOT" | grep -F '"version":"prototype1-state-cas-core"'
+
+      - name: Verify state-CAS auth gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY_FILE="$(mktemp)"
+          HTTP_CODE="$(curl -sS -o "$BODY_FILE" -w '%{http_code}'             -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/state-cas             -H 'Content-Type: application/json'             --data '{"execution_surface":"CHAT","trigger_mode":"HUMAN","operation":"STATE_COMPARE_AND_SET","state_key":"p1-auth-check","expected_version":0,"expected_state":null,"next_state":"STATE_1","idempotency_key":"p1-auth-check-key"}')"
+          BODY="$(cat "$BODY_FILE")"
+          echo "HTTP: $HTTP_CODE"
+          echo "Body: $BODY"
+          test "$HTTP_CODE" = "401"
+          echo "$BODY" | grep -F '"status":"FAILED"'
+          echo "$BODY" | grep -F '"error":"UNAUTHORIZED"'
+
+      - name: Verify Prototype 0 baseline route still exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY_FILE="$(mktemp)"
+          HTTP_CODE="$(curl -sS -o "$BODY_FILE" -w '%{http_code}'             -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/time-roundtrip             -H 'Content-Type: application/json'             --data '{"execution_surface":"CHAT","trigger_mode":"HUMAN","operation":"TIME_ROUNDTRIP"}')"
+          BODY="$(cat "$BODY_FILE")"
+          echo "HTTP: $HTTP_CODE"
+          echo "Body: $BODY"
+          test "$HTTP_CODE" = "401"
+          echo "$BODY" | grep -F '"error":"UNAUTHORIZED"'
+
+      - name: Post verification success
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "P1_RUNTIME_DEPLOYMENT_RESULT
+          Status: SUCCESS
+          Root_Status: alive
+          Version: prototype1-state-cas-core
+          State_CAS_Auth_Gate: UNAUTHORIZED_401
+          Prototype0_Baseline_Route: PRESENT_AND_AUTH_PROTECTED"
+
+      - name: Post verification failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "P1_RUNTIME_DEPLOYMENT_RESULT
+          Status: FAILED
+          Inspect the matching GitHub Actions run for the exact failed assertion."
