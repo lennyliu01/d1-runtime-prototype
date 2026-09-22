@@ -69,3 +69,26 @@ curl -sS https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/time-roun
 - GitHub transport: invocation transport only; it must not implement D1 persistence logic.
 
 Prototype 0 remains isolated from WorkOS production authority.
+
+
+## Prototype 1 state compare-and-set core
+
+Prototype 1 adds an authoritative append-only state transition path:
+
+```text
+POST /prototype/state-cas
+```
+
+The operation is `STATE_COMPARE_AND_SET`. Each accepted mutation appends exactly one new state version to `prototype_state_versions`; stale expectations append nothing.
+
+Request invariants:
+
+- `state_key` identifies an independent state stream.
+- `expected_version = 0` requires `expected_state = null` and initializes a previously absent state stream at version 1.
+- Existing-state transitions require both the exact `expected_version` and exact `expected_state`.
+- A mismatch returns HTTP 409 / `STALE_STATE` and does not mutate state.
+- `idempotency_key` is unique. Replaying the same accepted mutation returns the original accepted state version with `replayed = true` and does not append another version.
+- Reusing an idempotency key for a different mutation returns HTTP 409 / `IDEMPOTENCY_CONFLICT`.
+- There is no reset, update, delete, or arbitrary-SQL capability in the runtime API. Acceptance tests use fresh state keys instead of resetting authoritative state.
+
+Prototype 0 `POST /prototype/time-roundtrip` remains available unchanged as the frozen baseline.
