@@ -1,0 +1,159 @@
+name: Prototype 1 Idempotency Replay Acceptance
+
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  replay:
+    if: github.event.issue.title == '[P1_STATE] IDEMPOTENCY_REPLAY_ACCEPTANCE'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    env:
+      RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify required secrets are available
+        run: |
+          test -n "$RUNTIME_SECRET"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Replay accepted mutation
+        id: replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE_KEY="p1-init-issue-19"
+          IDEMPOTENCY_KEY="p1-transition-key-20"
+          SOURCE_RUN_KEY="p1-transition-source-20"
+          ORIGINAL_INVOCATION_ID="024cec4f-fe2a-4c3f-9bee-20bc464004ef"
+          ORIGINAL_DB_WRITTEN_AT="2026-09-22T07:42:13.076Z"
+          REQUEST_FILE="$(mktemp)"
+          RESPONSE_FILE="$(mktemp)"
+
+          jq -n             --arg state_key "$STATE_KEY"             --arg idempotency_key "$IDEMPOTENCY_KEY"             --arg source "$SOURCE_RUN_KEY"             '{
+              execution_surface: "CHAT",
+              trigger_mode: "HUMAN",
+              operation: "STATE_COMPARE_AND_SET",
+              state_key: $state_key,
+              expected_version: 1,
+              expected_state: "STATE_1",
+              next_state: "STATE_2",
+              idempotency_key: $idempotency_key,
+              source_run_key: $source
+            }' > "$REQUEST_FILE"
+
+          HTTP_CODE="$(curl -sS -o "$RESPONSE_FILE" -w '%{http_code}'             -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/state-cas             -H "Authorization: Bearer $RUNTIME_SECRET"             -H 'Content-Type: application/json'             --data-binary @"$REQUEST_FILE")"
+
+          RESPONSE="$(cat "$RESPONSE_FILE")"
+          echo "HTTP: $HTTP_CODE"
+          echo "Runtime response: $RESPONSE"
+
+          test "$HTTP_CODE" = "200"
+          echo "$RESPONSE" | jq -e             --arg state_key "$STATE_KEY"             --arg idempotency_key "$IDEMPOTENCY_KEY"             --arg invocation_id "$ORIGINAL_INVOCATION_ID"             --arg written "$ORIGINAL_DB_WRITTEN_AT"             '
+              .status == "SUCCESS" and
+              .execution_surface == "CHAT" and
+              .trigger_mode == "HUMAN" and
+              .operation == "STATE_COMPARE_AND_SET" and
+              .state_key == $state_key and
+              .previous_version == 1 and
+              .previous_state == "STATE_1" and
+              .version == 2 and
+              .state == "STATE_2" and
+              .idempotency_key == $idempotency_key and
+              .invocation_id == $invocation_id and
+              .db_written_at == $written and
+              .replayed == true and
+              (.db_read_at | type == "string" and length > 0)
+            ' >/dev/null
+
+          echo "state_key=$STATE_KEY" >> "$GITHUB_OUTPUT"
+          echo "idempotency_key=$IDEMPOTENCY_KEY" >> "$GITHUB_OUTPUT"
+          echo "invocation_id=$(echo "$RESPONSE" | jq -r '.invocation_id')" >> "$GITHUB_OUTPUT"
+          echo "db_written_at=$(echo "$RESPONSE" | jq -r '.db_written_at')" >> "$GITHUB_OUTPUT"
+          echo "db_read_at=$(echo "$RESPONSE" | jq -r '.db_read_at')" >> "$GITHUB_OUTPUT"
+
+      - name: Verify replay created no new version
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE_KEY="${{ steps.replay.outputs.state_key }}"
+          IDEMPOTENCY_KEY="${{ steps.replay.outputs.idempotency_key }}"
+          INVOCATION_ID="${{ steps.replay.outputs.invocation_id }}"
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT COUNT(*) AS row_count, MAX(version) AS max_version FROM prototype_state_versions WHERE state_key = '$STATE_KEY';"             > p1-replay-count.json
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT COUNT(*) AS idempotency_row_count, MIN(invocation_id) AS invocation_id FROM prototype_state_versions WHERE idempotency_key = '$IDEMPOTENCY_KEY';"             > p1-replay-idem.json
+
+          echo "State count:"
+          cat p1-replay-count.json
+          echo "Idempotency count:"
+          cat p1-replay-idem.json
+
+          jq -e '
+            [
+              .. | objects |
+              select(.row_count? == 2 and .max_version? == 2)
+            ] | length >= 1
+          ' p1-replay-count.json >/dev/null
+
+          jq -e             --arg invocation_id "$INVOCATION_ID"             '
+              [
+                .. | objects |
+                select(.idempotency_row_count? == 1 and .invocation_id? == $invocation_id)
+              ] | length >= 1
+            ' p1-replay-idem.json >/dev/null
+
+      - name: Post replay success
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          STATE_KEY: ${{ steps.replay.outputs.state_key }}
+          IDEMPOTENCY_KEY: ${{ steps.replay.outputs.idempotency_key }}
+          INVOCATION_ID: ${{ steps.replay.outputs.invocation_id }}
+          DB_WRITTEN_AT: ${{ steps.replay.outputs.db_written_at }}
+          DB_READ_AT: ${{ steps.replay.outputs.db_read_at }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "P1_IDEMPOTENCY_REPLAY_RESULT
+          Status: SUCCESS
+          State_Key: $STATE_KEY
+          Version: 2
+          State: STATE_2
+          Idempotency_Key: $IDEMPOTENCY_KEY
+          Invocation_ID: $INVOCATION_ID
+          DB_Written_At: $DB_WRITTEN_AT
+          DB_Read_At: $DB_READ_AT
+          Replayed: true
+          Persisted_Row_Count: 2
+          Max_Version: 2
+          Idempotency_Row_Count: 1
+          Zero_New_Rows_Verification: SUCCESS"
+
+      - name: Post replay failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "P1_IDEMPOTENCY_REPLAY_RESULT
+          Status: FAILED
+          Inspect the matching GitHub Actions run for the exact failed assertion."
