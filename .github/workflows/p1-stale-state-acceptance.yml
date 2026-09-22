@@ -1,0 +1,143 @@
+name: Prototype 1 Stale State Acceptance
+
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  stale:
+    if: github.event.issue.title == '[P1_STATE] STALE_ACCEPTANCE'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    env:
+      RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify required secrets are available
+        run: |
+          test -n "$RUNTIME_SECRET"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Submit stale mutation
+        id: stale
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE_KEY="p1-init-issue-19"
+          IDEMPOTENCY_KEY="p1-stale-key-${{ github.event.issue.number }}"
+          SOURCE_RUN_KEY="p1-stale-source-${{ github.event.issue.number }}"
+          REQUEST_FILE="$(mktemp)"
+          RESPONSE_FILE="$(mktemp)"
+
+          jq -n             --arg state_key "$STATE_KEY"             --arg idempotency_key "$IDEMPOTENCY_KEY"             --arg source "$SOURCE_RUN_KEY"             '{
+              execution_surface: "CHAT",
+              trigger_mode: "HUMAN",
+              operation: "STATE_COMPARE_AND_SET",
+              state_key: $state_key,
+              expected_version: 1,
+              expected_state: "STATE_1",
+              next_state: "STATE_3_STALE",
+              idempotency_key: $idempotency_key,
+              source_run_key: $source
+            }' > "$REQUEST_FILE"
+
+          HTTP_CODE="$(curl -sS -o "$RESPONSE_FILE" -w '%{http_code}'             -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/state-cas             -H "Authorization: Bearer $RUNTIME_SECRET"             -H 'Content-Type: application/json'             --data-binary @"$REQUEST_FILE")"
+
+          RESPONSE="$(cat "$RESPONSE_FILE")"
+          echo "HTTP: $HTTP_CODE"
+          echo "Runtime response: $RESPONSE"
+
+          test "$HTTP_CODE" = "409"
+          echo "$RESPONSE" | jq -e             --arg state_key "$STATE_KEY"             '
+              .status == "FAILED" and
+              .error == "STALE_STATE" and
+              .state_key == $state_key and
+              .expected_version == 1 and
+              .expected_state == "STATE_1" and
+              .current_version == 2 and
+              .current_state == "STATE_2"
+            ' >/dev/null
+
+          echo "state_key=$STATE_KEY" >> "$GITHUB_OUTPUT"
+          echo "idempotency_key=$IDEMPOTENCY_KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Verify zero stale persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE_KEY="${{ steps.stale.outputs.state_key }}"
+          IDEMPOTENCY_KEY="${{ steps.stale.outputs.idempotency_key }}"
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT COUNT(*) AS row_count, MAX(version) AS max_version FROM prototype_state_versions WHERE state_key = '$STATE_KEY';"             > p1-stale-count.json
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT COUNT(*) AS idempotency_row_count FROM prototype_state_versions WHERE idempotency_key = '$IDEMPOTENCY_KEY';"             > p1-stale-idem.json
+
+          echo "State count:"
+          cat p1-stale-count.json
+          echo "Idempotency count:"
+          cat p1-stale-idem.json
+
+          jq -e '
+            [
+              .. | objects |
+              select(.row_count? == 2 and .max_version? == 2)
+            ] | length >= 1
+          ' p1-stale-count.json >/dev/null
+
+          jq -e '
+            [
+              .. | objects |
+              select(.idempotency_row_count? == 0)
+            ] | length >= 1
+          ' p1-stale-idem.json >/dev/null
+
+      - name: Post stale-state success
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          STATE_KEY: ${{ steps.stale.outputs.state_key }}
+          IDEMPOTENCY_KEY: ${{ steps.stale.outputs.idempotency_key }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "P1_STALE_STATE_RESULT
+          Status: SUCCESS
+          State_Key: $STATE_KEY
+          Expected_Version: 1
+          Expected_State: STATE_1
+          Current_Version: 2
+          Current_State: STATE_2
+          HTTP: 409
+          Error: STALE_STATE
+          Stale_Idempotency_Key: $IDEMPOTENCY_KEY
+          Persisted_Row_Count: 2
+          Max_Version: 2
+          Stale_Idempotency_Row_Count: 0
+          Zero_New_Rows_Verification: SUCCESS"
+
+      - name: Post stale-state failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "P1_STALE_STATE_RESULT
+          Status: FAILED
+          Inspect the matching GitHub Actions run for the exact failed assertion."
