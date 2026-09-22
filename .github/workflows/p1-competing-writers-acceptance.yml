@@ -1,0 +1,269 @@
+name: Prototype 1 Competing Writers Acceptance
+
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  compete:
+    if: github.event.issue.title == '[P1_STATE] COMPETING_WRITERS_ACCEPTANCE'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    env:
+      RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify required secrets are available
+        run: |
+          test -n "$RUNTIME_SECRET"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Initialize fresh competing-writer state
+        id: init
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE_KEY="p1-race-issue-${{ github.event.issue.number }}"
+          INIT_IDEMPOTENCY_KEY="p1-race-init-${{ github.event.issue.number }}"
+          RESPONSE_FILE="$(mktemp)"
+          REQUEST_FILE="$(mktemp)"
+
+          jq -n             --arg state_key "$STATE_KEY"             --arg idem "$INIT_IDEMPOTENCY_KEY"             --arg source "p1-race-init-source-${{ github.event.issue.number }}"             '{
+              execution_surface: "CHAT",
+              trigger_mode: "HUMAN",
+              operation: "STATE_COMPARE_AND_SET",
+              state_key: $state_key,
+              expected_version: 0,
+              expected_state: null,
+              next_state: "STATE_1",
+              idempotency_key: $idem,
+              source_run_key: $source
+            }' > "$REQUEST_FILE"
+
+          HTTP_CODE="$(curl -sS -o "$RESPONSE_FILE" -w '%{http_code}'             -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/state-cas             -H "Authorization: Bearer $RUNTIME_SECRET"             -H 'Content-Type: application/json'             --data-binary @"$REQUEST_FILE")"
+
+          cat "$RESPONSE_FILE"
+          test "$HTTP_CODE" = "200"
+          jq -e --arg state_key "$STATE_KEY" '
+            .status == "SUCCESS" and
+            .state_key == $state_key and
+            .previous_version == 0 and
+            .previous_state == null and
+            .version == 1 and
+            .state == "STATE_1" and
+            .replayed == false
+          ' "$RESPONSE_FILE" >/dev/null
+
+          echo "state_key=$STATE_KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Submit two competing mutations
+        id: race
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE_KEY="${{ steps.init.outputs.state_key }}"
+          KEY_A="p1-race-a-${{ github.event.issue.number }}"
+          KEY_B="p1-race-b-${{ github.event.issue.number }}"
+
+          jq -n             --arg state_key "$STATE_KEY"             --arg idem "$KEY_A"             --arg source "p1-race-a-source-${{ github.event.issue.number }}"             '{
+              execution_surface: "CHAT",
+              trigger_mode: "HUMAN",
+              operation: "STATE_COMPARE_AND_SET",
+              state_key: $state_key,
+              expected_version: 1,
+              expected_state: "STATE_1",
+              next_state: "STATE_2_A",
+              idempotency_key: $idem,
+              source_run_key: $source
+            }' > request-a.json
+
+          jq -n             --arg state_key "$STATE_KEY"             --arg idem "$KEY_B"             --arg source "p1-race-b-source-${{ github.event.issue.number }}"             '{
+              execution_surface: "CHAT",
+              trigger_mode: "HUMAN",
+              operation: "STATE_COMPARE_AND_SET",
+              state_key: $state_key,
+              expected_version: 1,
+              expected_state: "STATE_1",
+              next_state: "STATE_2_B",
+              idempotency_key: $idem,
+              source_run_key: $source
+            }' > request-b.json
+
+          (
+            curl -sS -o response-a.json -w '%{http_code}'               -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/state-cas               -H "Authorization: Bearer $RUNTIME_SECRET"               -H 'Content-Type: application/json'               --data-binary @request-a.json > code-a.txt
+          ) &
+          PID_A=$!
+
+          (
+            curl -sS -o response-b.json -w '%{http_code}'               -X POST https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/state-cas               -H "Authorization: Bearer $RUNTIME_SECRET"               -H 'Content-Type: application/json'               --data-binary @request-b.json > code-b.txt
+          ) &
+          PID_B=$!
+
+          wait "$PID_A"
+          wait "$PID_B"
+
+          CODE_A="$(cat code-a.txt)"
+          CODE_B="$(cat code-b.txt)"
+          echo "A HTTP: $CODE_A"
+          cat response-a.json
+          echo
+          echo "B HTTP: $CODE_B"
+          cat response-b.json
+          echo
+
+          if [ "$CODE_A" = "200" ] && [ "$CODE_B" = "409" ]; then
+            WINNER="A"
+            WINNER_STATE="STATE_2_A"
+            WINNER_KEY="$KEY_A"
+            LOSER_KEY="$KEY_B"
+            WINNER_FILE="response-a.json"
+            LOSER_FILE="response-b.json"
+          elif [ "$CODE_A" = "409" ] && [ "$CODE_B" = "200" ]; then
+            WINNER="B"
+            WINNER_STATE="STATE_2_B"
+            WINNER_KEY="$KEY_B"
+            LOSER_KEY="$KEY_A"
+            WINNER_FILE="response-b.json"
+            LOSER_FILE="response-a.json"
+          else
+            echo "Expected exactly one HTTP 200 and one HTTP 409"
+            exit 31
+          fi
+
+          jq -e             --arg state_key "$STATE_KEY"             --arg winner_state "$WINNER_STATE"             --arg winner_key "$WINNER_KEY"             '
+              .status == "SUCCESS" and
+              .state_key == $state_key and
+              .previous_version == 1 and
+              .previous_state == "STATE_1" and
+              .version == 2 and
+              .state == $winner_state and
+              .idempotency_key == $winner_key and
+              .replayed == false and
+              (.invocation_id | type == "string" and length > 0)
+            ' "$WINNER_FILE" >/dev/null
+
+          jq -e             --arg state_key "$STATE_KEY"             --arg winner_state "$WINNER_STATE"             '
+              .status == "FAILED" and
+              .error == "STALE_STATE" and
+              .state_key == $state_key and
+              .expected_version == 1 and
+              .expected_state == "STATE_1" and
+              .current_version == 2 and
+              .current_state == $winner_state
+            ' "$LOSER_FILE" >/dev/null
+
+          WINNER_INVOCATION_ID="$(jq -r '.invocation_id' "$WINNER_FILE")"
+          echo "winner=$WINNER" >> "$GITHUB_OUTPUT"
+          echo "winner_state=$WINNER_STATE" >> "$GITHUB_OUTPUT"
+          echo "winner_key=$WINNER_KEY" >> "$GITHUB_OUTPUT"
+          echo "loser_key=$LOSER_KEY" >> "$GITHUB_OUTPUT"
+          echo "winner_invocation_id=$WINNER_INVOCATION_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Independently verify final authoritative state
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE_KEY="${{ steps.init.outputs.state_key }}"
+          WINNER_STATE="${{ steps.race.outputs.winner_state }}"
+          WINNER_KEY="${{ steps.race.outputs.winner_key }}"
+          LOSER_KEY="${{ steps.race.outputs.loser_key }}"
+          WINNER_INVOCATION_ID="${{ steps.race.outputs.winner_invocation_id }}"
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT COUNT(*) AS row_count, MAX(version) AS max_version FROM prototype_state_versions WHERE state_key = '$STATE_KEY';"             > race-count.json
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT state_key, version, state_value, previous_version, previous_state, invocation_id, idempotency_key FROM prototype_state_versions WHERE state_key = '$STATE_KEY' AND version = 2;"             > race-v2.json
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT COUNT(*) AS version3_count FROM prototype_state_versions WHERE state_key = '$STATE_KEY' AND version = 3;"             > race-v3.json
+
+          npx wrangler d1 execute d1-runtime-prototype-db             --remote             --json             --command "SELECT SUM(CASE WHEN idempotency_key = '$WINNER_KEY' THEN 1 ELSE 0 END) AS winner_key_count, SUM(CASE WHEN idempotency_key = '$LOSER_KEY' THEN 1 ELSE 0 END) AS loser_key_count FROM prototype_state_versions WHERE state_key = '$STATE_KEY';"             > race-keys.json
+
+          cat race-count.json
+          cat race-v2.json
+          cat race-v3.json
+          cat race-keys.json
+
+          jq -e '
+            [.. | objects | select(.row_count? == 2 and .max_version? == 2)] | length >= 1
+          ' race-count.json >/dev/null
+
+          jq -e             --arg state_key "$STATE_KEY"             --arg winner_state "$WINNER_STATE"             --arg winner_key "$WINNER_KEY"             --arg invocation_id "$WINNER_INVOCATION_ID"             '
+              [
+                .. | objects |
+                select(
+                  .state_key? == $state_key and
+                  .version? == 2 and
+                  .state_value? == $winner_state and
+                  .previous_version? == 1 and
+                  .previous_state? == "STATE_1" and
+                  .idempotency_key? == $winner_key and
+                  .invocation_id? == $invocation_id
+                )
+              ] | length == 1
+            ' race-v2.json >/dev/null
+
+          jq -e '
+            [.. | objects | select(.version3_count? == 0)] | length >= 1
+          ' race-v3.json >/dev/null
+
+          jq -e '
+            [.. | objects | select(.winner_key_count? == 1 and .loser_key_count? == 0)] | length >= 1
+          ' race-keys.json >/dev/null
+
+      - name: Post competing-writer success
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          STATE_KEY: ${{ steps.init.outputs.state_key }}
+          WINNER: ${{ steps.race.outputs.winner }}
+          WINNER_STATE: ${{ steps.race.outputs.winner_state }}
+          WINNER_KEY: ${{ steps.race.outputs.winner_key }}
+          LOSER_KEY: ${{ steps.race.outputs.loser_key }}
+          WINNER_INVOCATION_ID: ${{ steps.race.outputs.winner_invocation_id }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "P1_COMPETING_WRITERS_RESULT
+          Status: SUCCESS
+          State_Key: $STATE_KEY
+          Initial_State: STATE_1
+          Initial_Version: 1
+          Winner: $WINNER
+          Winner_State: $WINNER_STATE
+          Winner_Version: 2
+          Winner_Idempotency_Key: $WINNER_KEY
+          Winner_Invocation_ID: $WINNER_INVOCATION_ID
+          Loser_Idempotency_Key: $LOSER_KEY
+          Loser_Result: STALE_STATE
+          Persisted_Row_Count: 2
+          Max_Version: 2
+          Version_3_Row_Count: 0
+          Winner_Key_Row_Count: 1
+          Loser_Key_Row_Count: 0
+          Exactly_One_Winner_Verification: SUCCESS"
+
+      - name: Post competing-writer failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "P1_COMPETING_WRITERS_RESULT
+          Status: FAILED
+          Inspect the matching GitHub Actions run for the exact failed assertion."
