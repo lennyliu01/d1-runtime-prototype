@@ -360,7 +360,7 @@ jobs:
 
           VERIFY_FILE="$(mktemp)"
           VERIFY_CODE="$(curl -sS -o "$VERIFY_FILE" -w '%{http_code}' \
-            "https://api.cloudflare.com/client/v4/user/tokens/verify" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")"
           echo "TOKEN_VERIFY_HTTP=$VERIFY_CODE"
           jq -r '"TOKEN_ID=" + (.result.id // "UNKNOWN")' "$VERIFY_FILE"
