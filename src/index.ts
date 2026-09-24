@@ -13,9 +13,15 @@ interface D1RunResult {
   meta?: D1RunMeta;
 }
 
+interface D1AllResult<T> {
+  success: boolean;
+  results: T[];
+}
+
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
   first<T = Record<string, unknown>>(): Promise<T | null>;
+  all<T = Record<string, unknown>>(): Promise<D1AllResult<T>>;
   run(): Promise<D1RunResult>;
 }
 
