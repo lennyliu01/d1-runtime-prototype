@@ -29,7 +29,7 @@ interface DatasetControl {
   taskId: TaskId;
   writeMode: WriteMode;
   instances: ReadonlySet<string>;
-  writer: string;
+  writers: ReadonlySet<string>;
   readers: ReadonlySet<string>;
   resourceBinding: "DB";
 }
@@ -98,16 +98,16 @@ const WORKOS_DATASETS: Record<string, DatasetControl> = {
     taskId: "US_JAPAN_FX_POLICY",
     writeMode: "APPEND_ONLY",
     instances: FX_SINGLETON,
-    writer: "FX_POLICY_READER",
-    readers: new Set(["FX_POLICY_READER", "US_Japan_FX_Policy_Workflow"]),
+    writers: new Set(["FX_POLICY_READER_HARNESS_V1"]),
+    readers: new Set(["FX_POLICY_READER_HARNESS_V1", "US_Japan_FX_Policy_Workflow"]),
     resourceBinding: "DB",
   },
   FX_POLICY_EVIDENCE_LOG: {
     taskId: "US_JAPAN_FX_POLICY",
     writeMode: "APPEND_ONLY",
     instances: FX_SINGLETON,
-    writer: "FX_POLICY_COLLECTOR",
-    readers: new Set(["FX_POLICY_COLLECTOR", "FX_POLICY_READER"]),
+    writers: new Set(["FX_POLICY_COLLECTOR_HARNESS_V1"]),
+    readers: new Set(["FX_POLICY_COLLECTOR_HARNESS_V1", "FX_POLICY_READER_HARNESS_V1"]),
     resourceBinding: "DB",
   },
   FX_POLICY_MARKET_STATE: {
@@ -122,54 +122,59 @@ const WORKOS_DATASETS: Record<string, DatasetControl> = {
     taskId: "US_JAPAN_FX_POLICY",
     writeMode: "APPEND_ONLY",
     instances: FX_SINGLETON,
-    writer: "FX_POLICY_COLLECTOR",
-    readers: new Set(["FX_POLICY_COLLECTOR", "FX_POLICY_READER", "US_Japan_FX_Policy_Workflow"]),
+    writers: new Set(["FX_POLICY_COLLECTOR_HARNESS_V1"]),
+    readers: new Set(["FX_POLICY_COLLECTOR_HARNESS_V1", "FX_POLICY_READER_HARNESS_V1", "US_Japan_FX_Policy_Workflow"]),
     resourceBinding: "DB",
   },
   RW_CURRENT_STATE: {
     taskId: "ROLLING_WEDGE_INVESTMENT",
     writeMode: "CURRENT_STATE",
     instances: RW_INSTANCES,
-    writer: "ROLLING_WEDGE_WORKFLOW",
-    readers: new Set(["Rolling_Wedge_Workflow"]),
+    writers: new Set(["Rolling_Wedge_Workflow"]),
+    readers: new Set([
+      "Rolling_Wedge_Workflow",
+      "RW_MONITOR_HARNESS_V1",
+      "RW_REVISER_HARNESS_V1",
+      "RW_VALUATOR_HARNESS_V1",
+      "RW_DECISION_HARNESS_V1",
+    ]),
     resourceBinding: "DB",
   },
   RW_EVIDENCE_HISTORY: {
     taskId: "ROLLING_WEDGE_INVESTMENT",
     writeMode: "APPEND_ONLY",
     instances: RW_INSTANCES,
-    writer: "ROLLING_WEDGE_MONITOR_CONTEXT",
-    readers: new Set(["Rolling_Wedge_Workflow", "ROLLING_WEDGE_MONITOR_CONTEXT", "ROLLING_WEDGE_REVISER_CONTEXT"]),
+    writers: new Set(["RW_MONITOR_HARNESS_V1"]),
+    readers: new Set(["Rolling_Wedge_Workflow", "RW_REVISER_HARNESS_V1"]),
     resourceBinding: "DB",
   },
   RW_REVISION_HISTORY: {
     taskId: "ROLLING_WEDGE_INVESTMENT",
     writeMode: "APPEND_ONLY",
     instances: RW_INSTANCES,
-    writer: "ROLLING_WEDGE_REVISER_CONTEXT",
-    readers: new Set(["Rolling_Wedge_Workflow", "ROLLING_WEDGE_REVISER_CONTEXT"]),
+    writers: new Set(["RW_REVISER_HARNESS_V1"]),
+    readers: new Set(["Rolling_Wedge_Workflow", "RW_REVISER_HARNESS_V1"]),
     resourceBinding: "DB",
   },
   RW_VALUATION_HISTORY: {
     taskId: "ROLLING_WEDGE_INVESTMENT",
     writeMode: "APPEND_ONLY",
     instances: RW_INSTANCES,
-    writer: "ROLLING_WEDGE_VALUATOR_CONTEXT",
-    readers: new Set(["Rolling_Wedge_Workflow", "ROLLING_WEDGE_VALUATOR_CONTEXT"]),
+    writers: new Set(["RW_VALUATOR_HARNESS_V1"]),
+    readers: new Set(["Rolling_Wedge_Workflow", "RW_VALUATOR_HARNESS_V1"]),
     resourceBinding: "DB",
   },
   RW_RUN_LOG: {
     taskId: "ROLLING_WEDGE_INVESTMENT",
     writeMode: "APPEND_ONLY",
     instances: RW_INSTANCES,
-    writer: "ROLLING_WEDGE_ROLE_CONTEXT",
-    readers: new Set([
-      "Rolling_Wedge_Workflow",
-      "ROLLING_WEDGE_MONITOR_CONTEXT",
-      "ROLLING_WEDGE_REVISER_CONTEXT",
-      "ROLLING_WEDGE_VALUATOR_CONTEXT",
-      "ROLLING_WEDGE_ROLE_CONTEXT",
+    writers: new Set([
+      "RW_MONITOR_HARNESS_V1",
+      "RW_REVISER_HARNESS_V1",
+      "RW_VALUATOR_HARNESS_V1",
+      "RW_DECISION_HARNESS_V1",
     ]),
+    readers: new Set(["Rolling_Wedge_Workflow", "RW_MONITOR_HARNESS_V1"]),
     resourceBinding: "DB",
   },
 };
@@ -265,7 +270,7 @@ function resolveControl(body: ReadRequest | WriteRequest): DatasetControl | Resp
   if (control.taskId !== body.task_id || !control.instances.has(body.instance_id)) return fail("CONTROL_DENIED", 403);
   if (body.operation === "READ") {
     if (!control.readers.has(body.caller_identity)) return fail("READ_NOT_AUTHORIZED", 403);
-  } else if (control.writer !== body.caller_identity) {
+  } else if (!control.writers.has(body.caller_identity)) {
     return fail("WRITE_NOT_AUTHORIZED", 403);
   }
   return control;
