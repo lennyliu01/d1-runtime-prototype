@@ -17,7 +17,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
       CANDIDATE_URL: http://127.0.0.1:8787
-      REMOTE_CANDIDATE_URL: https://d1-runtime-prototype.lennyliu01.workers.dev
+      REMOTE_CANDIDATE_URL: https://step4-witness-d1-runtime-prototype.lennyliu01.workers.dev
       LOCAL_STATE: .step4-wrangler-state
       REMOTE_WITNESS_RUN: REMOTEWITNESS-${{ github.run_id }}
     steps:
@@ -353,8 +353,27 @@ jobs:
           test "$APPEND_COUNT" -eq 0
           test "$CURRENT_COUNT" -eq 0
 
-      - name: Deploy candidate code to existing non-authoritative Worker
-        run: npx wrangler deploy
+      - name: Verify remote Worker visibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESPONSE="$(curl -fsS "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")"
+          echo "$RESPONSE" | jq -e '.success == true' >/dev/null
+          echo "$RESPONSE" | jq -e '.result | any(.id == "d1-runtime-prototype")' >/dev/null
+          echo "REMOTE_WORKER_VISIBLE=TRUE"
+
+      - name: Upload isolated candidate Worker version
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler versions upload \
+            --name d1-runtime-prototype \
+            --preview-alias step4-witness \
+            --tag "$REMOTE_WITNESS_RUN" \
+            --message "WorkOS D1 Step 4 remote witness" \
+            --keep-vars
+          echo "REMOTE_VERSION_UPLOADED=TRUE"
 
       - name: Run remote Worker witness
         shell: bash
@@ -558,4 +577,15 @@ jobs:
           echo "REMOTE_POSTCLEAN_CURRENT_STATE_VERSIONS=$CURRENT_COUNT"
           test "$APPEND_COUNT" -eq 0
           test "$CURRENT_COUNT" -eq 0
+
+          VERSION_ID="$(npx wrangler versions list --name d1-runtime-prototype --json | jq -r --arg tag "$REMOTE_WITNESS_RUN" '.[] | select(.tag == $tag) | .id' | head -n1)"
+          if [ -n "$VERSION_ID" ] && [ "$VERSION_ID" != "null" ]; then
+            DELETE_RESPONSE="$(curl -fsS -X DELETE \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/workers/d1-runtime-prototype/versions/$VERSION_ID" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")"
+            echo "$DELETE_RESPONSE" | jq -e '.success == true' >/dev/null
+            echo "REMOTE_WITNESS_VERSION_DELETED=TRUE"
+          else
+            echo "REMOTE_WITNESS_VERSION_DELETED=NOT_CREATED"
+          fi
 
