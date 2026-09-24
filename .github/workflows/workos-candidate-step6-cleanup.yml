@@ -1,0 +1,69 @@
+name: WorkOS D1 Candidate Step 6 Cleanup
+
+on:
+  push:
+    branches:
+      - workos-d1-candidate
+    paths:
+      - '.github/workflows/workos-candidate-step6-cleanup.yml'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: workos-d1-candidate
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+
+      - name: Require exact witness rows before cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          SQL="SELECT COUNT(*) AS c FROM workos_append_records WHERE
+            (dataset_id='FX_POLICY_MARKET_STATE' AND instance_id='SINGLETON' AND record_key='20260924T1241JST') OR
+            (dataset_id='FX_POLICY_RUN_LOG' AND instance_id='SINGLETON' AND record_key='20260924T1241JST') OR
+            (dataset_id='FX_POLICY_ANALYSIS_STATE' AND instance_id='SINGLETON' AND record_key='20260924-1243-REVIEW') OR
+            (dataset_id='RW_RUN_LOG' AND instance_id='FIGMA' AND record_key='20260924T1243JST-MONITOR-FIGMA');"
+          C="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "$SQL" --json | jq -r '.[0].results[0].c')"
+          echo "WITNESS_ROWS_BEFORE=$C"
+          test "$C" -eq 4
+
+      - name: Delete only Step 6 witness rows
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute d1-runtime-prototype-db --remote --command "
+            DELETE FROM workos_append_records WHERE dataset_id='FX_POLICY_MARKET_STATE' AND instance_id='SINGLETON' AND record_key='20260924T1241JST';
+            DELETE FROM workos_append_records WHERE dataset_id='FX_POLICY_RUN_LOG' AND instance_id='SINGLETON' AND record_key='20260924T1241JST';
+            DELETE FROM workos_append_records WHERE dataset_id='FX_POLICY_ANALYSIS_STATE' AND instance_id='SINGLETON' AND record_key='20260924-1243-REVIEW';
+            DELETE FROM workos_append_records WHERE dataset_id='RW_RUN_LOG' AND instance_id='FIGMA' AND record_key='20260924T1243JST-MONITOR-FIGMA';
+          "
+
+      - name: Verify restored migration baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          A="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_append_records;" --json | jq -r '.[0].results[0].c')"
+          C="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_current_state_versions;" --json | jq -r '.[0].results[0].c')"
+          FX="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT record_key FROM workos_append_records WHERE dataset_id='FX_POLICY_RUN_LOG' AND instance_id='SINGLETON' ORDER BY append_seq DESC LIMIT 1;" --json | jq -r '.[0].results[0].record_key')"
+          FXL="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT json_extract(payload_json,'$.Last_Collector_Run_ID_Reviewed') AS checkpoint FROM workos_append_records WHERE dataset_id='FX_POLICY_ANALYSIS_STATE' AND instance_id='SINGLETON' ORDER BY append_seq DESC LIMIT 1;" --json | jq -r '.[0].results[0].checkpoint')"
+          RW="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT record_key FROM workos_append_records WHERE dataset_id='RW_RUN_LOG' AND instance_id='FIGMA' AND json_extract(payload_json,'$.Role')='MONITOR' AND json_extract(payload_json,'$.Status')='SUCCESS' ORDER BY append_seq DESC LIMIT 1;" --json | jq -r '.[0].results[0].record_key')"
+          echo "POST_WITNESS_APPEND_ROWS=$A"
+          echo "POST_WITNESS_CURRENT_STATE_VERSIONS=$C"
+          echo "POST_WITNESS_FX_RUN_CHECKPOINT=$FX"
+          echo "POST_WITNESS_FX_READER_CHECKPOINT=$FXL"
+          echo "POST_WITNESS_FIGMA_MONITOR_CHECKPOINT=$RW"
+          test "$A" -eq 125
+          test "$C" -eq 3
+          test "$FX" = "20260923T1201JST"
+          test "$FXL" = "20260923T1201JST"
+          test "$RW" = "20260923T1132JST-MONITOR-FIGMA"
