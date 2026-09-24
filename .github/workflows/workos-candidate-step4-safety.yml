@@ -1,4 +1,5 @@
 name: WorkOS D1 Candidate Step 4 Safety
+# rerun: control typing + payload canonicalization + isolated adapter target
 
 on:
   push:
