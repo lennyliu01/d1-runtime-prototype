@@ -353,14 +353,32 @@ jobs:
           test "$APPEND_COUNT" -eq 0
           test "$CURRENT_COUNT" -eq 0
 
-      - name: Verify remote Worker visibility
+      - name: Verify remote token and Worker visibility
         shell: bash
         run: |
           set -euo pipefail
-          RESPONSE="$(curl -fsS "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts" \
+
+          VERIFY_FILE="$(mktemp)"
+          VERIFY_CODE="$(curl -sS -o "$VERIFY_FILE" -w '%{http_code}' \
+            "https://api.cloudflare.com/client/v4/user/tokens/verify" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")"
-          echo "$RESPONSE" | jq -e '.success == true' >/dev/null
-          echo "$RESPONSE" | jq -e '.result | any(.id == "d1-runtime-prototype")' >/dev/null
+          echo "TOKEN_VERIFY_HTTP=$VERIFY_CODE"
+          jq -r '"TOKEN_ID=" + (.result.id // "UNKNOWN")' "$VERIFY_FILE"
+          jq -r '"TOKEN_STATUS=" + (.result.status // "UNKNOWN")' "$VERIFY_FILE"
+          test "$VERIFY_CODE" = "200"
+          jq -e '.success == true and .result.status == "active"' "$VERIFY_FILE" >/dev/null
+
+          SCRIPTS_FILE="$(mktemp)"
+          SCRIPTS_CODE="$(curl -sS -o "$SCRIPTS_FILE" -w '%{http_code}' \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")"
+          echo "WORKER_LIST_HTTP=$SCRIPTS_CODE"
+          if [ "$SCRIPTS_CODE" != "200" ]; then
+            jq -c '{success,errors,messages}' "$SCRIPTS_FILE" || cat "$SCRIPTS_FILE"
+            exit 61
+          fi
+          jq -e '.success == true' "$SCRIPTS_FILE" >/dev/null
+          jq -e '.result | any(.id == "d1-runtime-prototype")' "$SCRIPTS_FILE" >/dev/null
           echo "REMOTE_WORKER_VISIBLE=TRUE"
 
       - name: Upload isolated candidate Worker version
@@ -373,6 +391,7 @@ jobs:
             --tag "$REMOTE_WITNESS_RUN" \
             --message "WorkOS D1 Step 4 remote witness" \
             --keep-vars
+          touch /tmp/workos-remote-version-uploaded
           echo "REMOTE_VERSION_UPLOADED=TRUE"
 
       - name: Run remote Worker witness
@@ -578,8 +597,10 @@ jobs:
           test "$APPEND_COUNT" -eq 0
           test "$CURRENT_COUNT" -eq 0
 
-          VERSION_ID="$(npx wrangler versions list --name d1-runtime-prototype --json | jq -r --arg tag "$REMOTE_WITNESS_RUN" '.[] | select(.tag == $tag) | .id' | head -n1)"
-          if [ -n "$VERSION_ID" ] && [ "$VERSION_ID" != "null" ]; then
+          if [ -f /tmp/workos-remote-version-uploaded ]; then
+            VERSION_ID="$(npx wrangler versions list --name d1-runtime-prototype --json | jq -r --arg tag "$REMOTE_WITNESS_RUN" '.[] | select(.tag == $tag) | .id' | head -n1)"
+            test -n "$VERSION_ID"
+            test "$VERSION_ID" != "null"
             DELETE_RESPONSE="$(curl -fsS -X DELETE \
               "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/workers/d1-runtime-prototype/versions/$VERSION_ID" \
               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")"
