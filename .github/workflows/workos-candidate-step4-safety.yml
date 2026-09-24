@@ -1,7 +1,4 @@
 name: WorkOS D1 Candidate Step 4 Safety
-# rerun: control typing + payload canonicalization + isolated adapter target
-# rerun: remaining FX market-state caller projection fixed
-# rerun: reuse existing prototype Worker because token is scoped to that resource
 
 on:
   push:
@@ -16,10 +13,9 @@ jobs:
     permissions:
       contents: read
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
-      CANDIDATE_URL: https://d1-runtime-prototype.lennyliu01.workers.dev
+      RUNTIME_SECRET: step4-local-secret
+      CANDIDATE_URL: http://127.0.0.1:8787
+      LOCAL_STATE: .step4-wrangler-state
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,29 +28,40 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Typecheck before remote mutation
+      - name: Typecheck
         run: npm run typecheck
 
-      - name: Verify required secrets
+      - name: Apply candidate schema to local D1
+        run: npx wrangler d1 migrations apply d1-runtime-prototype-db --local --persist-to "$LOCAL_STATE"
+
+      - name: Verify local candidate tables
         run: |
           set -euo pipefail
-          test -n "$CLOUDFLARE_API_TOKEN"
-          test -n "$CLOUDFLARE_ACCOUNT_ID"
-          test -n "$RUNTIME_SECRET"
-
-      - name: Apply candidate schema to non-authoritative prototype D1
-        run: npx wrangler d1 migrations apply d1-runtime-prototype-db --remote
-
-      - name: Verify candidate tables exist
-        run: |
-          set -euo pipefail
-          OUT="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('workos_append_records','workos_current_state_versions') ORDER BY name;")"
+          OUT="$(npx wrangler d1 execute d1-runtime-prototype-db --local --persist-to "$LOCAL_STATE" --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('workos_append_records','workos_current_state_versions') ORDER BY name;")"
           echo "$OUT"
           echo "$OUT" | grep -F 'workos_append_records'
           echo "$OUT" | grep -F 'workos_current_state_versions'
 
-      - name: Deploy candidate code to existing non-authoritative prototype Worker
-        run: npx wrangler deploy
+      - name: Start local candidate Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler dev --local --port 8787 --persist-to "$LOCAL_STATE" --var RUNTIME_SECRET:"$RUNTIME_SECRET" > /tmp/workos-step4-worker.log 2>&1 &
+          echo $! > /tmp/workos-step4-worker.pid
+
+          ready=0
+          for _ in $(seq 1 30); do
+            if curl -fsS "$CANDIDATE_URL/" >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/workos-step4-worker.log
+            exit 50
+          fi
 
       - name: Run candidate safety matrix
         shell: bash
@@ -77,6 +84,12 @@ jobs:
           denied_code="$(post "$denied" "$denied_file")"
           test "$denied_code" = "403"
           jq -e '.status=="FAILED" and .error=="READ_NOT_AUTHORIZED"' "$denied_file" >/dev/null
+
+          overbroad='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"FX_POLICY_READER_HARNESS_V1","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":101}}'
+          overbroad_file="$(mktemp)"
+          overbroad_code="$(post "$overbroad" "$overbroad_file")"
+          test "$overbroad_code" = "400"
+          jq -e '.status=="FAILED" and .error=="INVALID_REQUEST"' "$overbroad_file" >/dev/null
 
           run_id="STEP4-$(date +%s)-$RANDOM"
           k1="$run_id-A1"
@@ -103,6 +116,23 @@ jobs:
           replay_code="$(post "$append1" "$replay_file")"
           test "$replay_code" = "200"
           jq -e --arg inv "$inv1" --argjson seq "$seq1" '.status=="SUCCESS" and .replayed==true and .invocation_id==$inv and .append_seq==$seq' "$replay_file" >/dev/null
+
+          reordered="$(jq -cn --arg rk "$k1" --arg idem "$idem1" --arg rid "$run_id" '{
+            idempotency_key:$idem,
+            record_key:$rk,
+            instance_id:"SINGLETON",
+            dataset_id:"FX_POLICY_RUN_LOG",
+            operation:"WRITE",
+            caller_identity:"FX_POLICY_COLLECTOR_HARNESS_V1",
+            task_id:"US_JAPAN_FX_POLICY",
+            trigger_mode:"HUMAN",
+            execution_surface:"CHAT",
+            payload:{Status:"SUCCESS",Probe:"append-1",Run_ID:$rid}
+          }')"
+          reordered_file="$(mktemp)"
+          reordered_code="$(post "$reordered" "$reordered_file")"
+          test "$reordered_code" = "200"
+          jq -e --arg inv "$inv1" --argjson seq "$seq1" '.status=="SUCCESS" and .replayed==true and .invocation_id==$inv and .append_seq==$seq' "$reordered_file" >/dev/null
 
           conflict="$(echo "$append1" | jq '.payload.Probe="changed"')"
           conflict_file="$(mktemp)"
@@ -272,5 +302,14 @@ jobs:
           test "$amb_retry_code" = "200"
           jq -e --arg inv "$original_amb_inv" '.status=="SUCCESS" and .replayed==true and .invocation_id==$inv' "$amb_retry_file" >/dev/null
 
+          append_count="$(npx wrangler d1 execute d1-runtime-prototype-db --local --persist-to "$LOCAL_STATE" --command "SELECT COUNT(*) AS c FROM workos_append_records;" --json | jq -r '.[0].results[0].c')"
+          current_count="$(npx wrangler d1 execute d1-runtime-prototype-db --local --persist-to "$LOCAL_STATE" --command "SELECT COUNT(*) AS c FROM workos_current_state_versions;" --json | jq -r '.[0].results[0].c')"
+          test "$append_count" -eq 4
+          test "$current_count" -eq 3
+
           echo "STEP4_SAFETY_RESULT=PASS"
           echo "RUN_ID=$run_id"
+          echo "APPEND_ROWS=$append_count"
+          echo "CURRENT_STATE_VERSIONS=$current_count"
+
+          kill "$(cat /tmp/workos-step4-worker.pid)" || true
