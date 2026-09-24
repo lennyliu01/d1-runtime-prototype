@@ -45,3 +45,71 @@ jobs:
           done
           test "$READY" -eq 1
           echo "CANDIDATE_ROUTE_READY=TRUE"
+
+      - name: Verify current D1 equals frozen migration snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show aa4fa0ff8e6367260d3459f026ec15721f02d13e:.step5/step5-source-snapshot-20260924.json > /tmp/step5-snapshot.json
+          npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT dataset_id,instance_id,record_key,payload_json FROM workos_append_records ORDER BY append_seq;" --json > /tmp/current-append.json
+          npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT dataset_id,instance_id,version,previous_version,payload_json FROM workos_current_state_versions ORDER BY dataset_id,instance_id,version;" --json > /tmp/current-state.json
+
+          node <<'NODE'
+          const fs=require("fs");
+          const snap=JSON.parse(fs.readFileSync("/tmp/step5-snapshot.json","utf8"));
+          const unwrap=(p)=>{
+            const x=JSON.parse(fs.readFileSync(p,"utf8"));
+            if(!Array.isArray(x)||!x[0]||!Array.isArray(x[0].results)) throw new Error("unexpected wrangler JSON");
+            return x[0].results;
+          };
+          const append=unwrap("/tmp/current-append.json");
+          const current=unwrap("/tmp/current-state.json");
+
+          const expectedAppend=[];
+          const expectedCurrent=[];
+          for(const d of snap.datasets){
+            if(d.write_mode==="APPEND_ONLY"){
+              for(const r of d.records){
+                expectedAppend.push({
+                  dataset_id:d.dataset_id,
+                  instance_id:d.instance_id,
+                  record_key:String(r[d.record_key_field]),
+                  payload:r
+                });
+              }
+            } else {
+              expectedCurrent.push({
+                dataset_id:d.dataset_id,
+                instance_id:d.instance_id,
+                version:1,
+                previous_version:0,
+                payload:d.payload
+              });
+            }
+          }
+
+          if(append.length!==125) throw new Error("append count "+append.length+" != 125");
+          if(current.length!==3) throw new Error("current count "+current.length+" != 3");
+          if(expectedAppend.length!==125||expectedCurrent.length!==3) throw new Error("snapshot baseline mismatch");
+
+          const akey=x=>[x.dataset_id,x.instance_id,x.record_key].join("|");
+          const amap=new Map(append.map(x=>[akey(x),x]));
+          for(const e of expectedAppend){
+            const a=amap.get(akey(e));
+            if(!a) throw new Error("missing append "+akey(e));
+            if(JSON.stringify(JSON.parse(a.payload_json))!==JSON.stringify(e.payload)) throw new Error("payload mismatch "+akey(e));
+          }
+
+          const ckey=x=>[x.dataset_id,x.instance_id,x.version].join("|");
+          const cmap=new Map(current.map(x=>[ckey(x),x]));
+          for(const e of expectedCurrent){
+            const a=cmap.get(ckey(e));
+            if(!a) throw new Error("missing current "+ckey(e));
+            if(Number(a.previous_version)!==0) throw new Error("previous version mismatch "+ckey(e));
+            if(JSON.stringify(JSON.parse(a.payload_json))!==JSON.stringify(e.payload)) throw new Error("current payload mismatch "+ckey(e));
+          }
+
+          console.log("CURRENT_D1_BASELINE_RECONCILIATION=PASS");
+          console.log("CURRENT_D1_APPEND_ROWS="+append.length);
+          console.log("CURRENT_D1_CURRENT_STATE_VERSIONS="+current.length);
+          NODE
