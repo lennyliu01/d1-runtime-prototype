@@ -3,7 +3,7 @@
 -- Business semantics remain owned by existing Dataset / Workflow / Role contracts.
 
 CREATE TABLE workos_append_records (
-  append_seq INTEGER PRIMARY KEY AUTOINCREMENT,
+  append_seq INTEGER PRIMARY KEY,
   dataset_id TEXT NOT NULL,
   instance_id TEXT NOT NULL,
   record_key TEXT NOT NULL,
@@ -33,6 +33,3 @@ CREATE TABLE workos_current_state_versions (
     (version > 1 AND previous_version = version - 1)
   )
 );
-
-CREATE INDEX idx_workos_current_lookup
-  ON workos_current_state_versions (dataset_id, instance_id, version DESC);
