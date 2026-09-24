@@ -13,9 +13,13 @@ jobs:
     permissions:
       contents: read
     env:
-      RUNTIME_SECRET: step4-local-secret
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
       CANDIDATE_URL: http://127.0.0.1:8787
+      REMOTE_CANDIDATE_URL: https://d1-runtime-prototype.lennyliu01.workers.dev
       LOCAL_STATE: .step4-wrangler-state
+      REMOTE_WITNESS_RUN: REMOTEWITNESS-${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,6 +34,13 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Verify remote witness credentials
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$RUNTIME_SECRET"
 
       - name: Apply candidate schema to local D1
         run: npx wrangler d1 migrations apply d1-runtime-prototype-db --local --persist-to "$LOCAL_STATE"
@@ -330,3 +341,221 @@ jobs:
           echo "CURRENT_STATE_VERSIONS=$current_count"
 
           kill "$(cat /tmp/workos-step4-worker.pid)" || true
+
+      - name: Require empty remote candidate tables
+        shell: bash
+        run: |
+          set -euo pipefail
+          APPEND_COUNT="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_append_records;" --json | jq -r '.[0].results[0].c')"
+          CURRENT_COUNT="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_current_state_versions;" --json | jq -r '.[0].results[0].c')"
+          echo "REMOTE_PRECHECK_APPEND_ROWS=$APPEND_COUNT"
+          echo "REMOTE_PRECHECK_CURRENT_STATE_VERSIONS=$CURRENT_COUNT"
+          test "$APPEND_COUNT" -eq 0
+          test "$CURRENT_COUNT" -eq 0
+
+      - name: Deploy candidate code to existing non-authoritative Worker
+        run: npx wrangler deploy
+
+      - name: Run remote Worker witness
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          post_remote() {
+            local payload="$1"
+            local out="$2"
+            curl -sS -o "$out" -w '%{http_code}'               -X POST "$REMOTE_CANDIDATE_URL/candidate/workos-persistence"               -H "Authorization: Bearer $RUNTIME_SECRET"               -H 'Content-Type: application/json'               --data-binary "$payload"
+          }
+
+          unauth_file="$(mktemp)"
+          unauth_code="$(curl -sS -o "$unauth_file" -w '%{http_code}'             -X POST "$REMOTE_CANDIDATE_URL/candidate/workos-persistence"             -H 'Content-Type: application/json'             --data '{"operation":"READ"}')"
+          test "$unauth_code" = "401"
+          jq -e '.status=="FAILED" and .error=="UNAUTHORIZED"' "$unauth_file" >/dev/null
+
+          cross_task='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"MONITOR","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":1}}'
+          cross_file="$(mktemp)"
+          cross_code="$(post_remote "$cross_task" "$cross_file")"
+          test "$cross_code" = "403"
+          jq -e '.status=="FAILED" and .error=="READ_NOT_AUTHORIZED"' "$cross_file" >/dev/null
+
+          legacy_read='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"FX_POLICY_READER_HARNESS_V1","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":1}}'
+          legacy_read_file="$(mktemp)"
+          legacy_read_code="$(post_remote "$legacy_read" "$legacy_read_file")"
+          test "$legacy_read_code" = "403"
+          jq -e '.status=="FAILED" and .error=="READ_NOT_AUTHORIZED"' "$legacy_read_file" >/dev/null
+
+          legacy_write="$(jq -cn --arg run "$REMOTE_WITNESS_RUN" '{
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_COLLECTOR_HARNESS_V1",
+            operation:"WRITE",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
+            record_key:($run+"-LEGACY"),idempotency_key:($run+"-LEGACY"),
+            payload:{Probe:"legacy-caller-must-fail"}
+          }')"
+          legacy_write_file="$(mktemp)"
+          legacy_write_code="$(post_remote "$legacy_write" "$legacy_write_file")"
+          test "$legacy_write_code" = "403"
+          jq -e '.status=="FAILED" and .error=="WRITE_NOT_AUTHORIZED"' "$legacy_write_file" >/dev/null
+
+          overbroad='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"READER","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":101}}'
+          overbroad_file="$(mktemp)"
+          overbroad_code="$(post_remote "$overbroad" "$overbroad_file")"
+          test "$overbroad_code" = "400"
+          jq -e '.status=="FAILED" and .error=="INVALID_REQUEST"' "$overbroad_file" >/dev/null
+
+          fx_key="$REMOTE_WITNESS_RUN-FX-RUN"
+          fx_idem="$REMOTE_WITNESS_RUN-FX-RUN-IDEM"
+          fx_write="$(jq -cn --arg rk "$fx_key" --arg idem "$fx_idem" --arg run "$REMOTE_WITNESS_RUN" '{
+            execution_surface:"CHAT",trigger_mode:"HUMAN",
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"COLLECTOR",
+            operation:"WRITE",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
+            record_key:$rk,idempotency_key:$idem,payload:{Probe:"remote-fx-collector",Run_ID:$run}
+          }')"
+          fx_file="$(mktemp)"
+          fx_code="$(post_remote "$fx_write" "$fx_file")"
+          test "$fx_code" = "200"
+          jq -e '.status=="SUCCESS" and .caller_identity=="COLLECTOR" and .write_mode=="APPEND_ONLY" and .replayed==false and (.invocation_id|length>0) and (.db_read_at|length>0)' "$fx_file" >/dev/null
+          fx_inv="$(jq -r '.invocation_id' "$fx_file")"
+
+          fx_replay_file="$(mktemp)"
+          fx_replay_code="$(post_remote "$fx_write" "$fx_replay_file")"
+          test "$fx_replay_code" = "200"
+          jq -e --arg inv "$fx_inv" '.status=="SUCCESS" and .replayed==true and .invocation_id==$inv' "$fx_replay_file" >/dev/null
+
+          fx_read="$(jq -cn --arg rk "$fx_key" '{
+            execution_surface:"WORK",trigger_mode:"HUMAN",
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"READER",
+            operation:"READ",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
+            selector:{kind:"RECORD",record_key:$rk}
+          }')"
+          fx_read_file="$(mktemp)"
+          fx_read_code="$(post_remote "$fx_read" "$fx_read_file")"
+          test "$fx_read_code" = "200"
+          jq -e --arg inv "$fx_inv" '.status=="SUCCESS" and .caller_identity=="READER" and .selector=="RECORD" and .record.invocation_id==$inv' "$fx_read_file" >/dev/null
+
+          fx_analysis_key="$REMOTE_WITNESS_RUN-FX-ANALYSIS"
+          fx_analysis="$(jq -cn --arg rk "$fx_analysis_key" --arg run "$REMOTE_WITNESS_RUN" '{
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"READER",
+            operation:"WRITE",dataset_id:"FX_POLICY_ANALYSIS_STATE",instance_id:"SINGLETON",
+            record_key:$rk,idempotency_key:($run+"-FX-ANALYSIS-IDEM"),
+            payload:{Probe:"remote-fx-reader"}
+          }')"
+          fx_analysis_file="$(mktemp)"
+          fx_analysis_code="$(post_remote "$fx_analysis" "$fx_analysis_file")"
+          test "$fx_analysis_code" = "200"
+          jq -e '.status=="SUCCESS" and .caller_identity=="READER" and .write_mode=="APPEND_ONLY"' "$fx_analysis_file" >/dev/null
+
+          rw_evidence_key="$REMOTE_WITNESS_RUN-RW-EVIDENCE"
+          rw_evidence="$(jq -cn --arg rk "$rw_evidence_key" --arg run "$REMOTE_WITNESS_RUN" '{
+            task_id:"ROLLING_WEDGE_INVESTMENT",caller_identity:"MONITOR",
+            operation:"WRITE",dataset_id:"RW_EVIDENCE_HISTORY",instance_id:"ENPLAS",
+            record_key:$rk,idempotency_key:($run+"-RW-EVIDENCE-IDEM"),
+            payload:{Probe:"remote-rw-monitor"}
+          }')"
+          rw_evidence_file="$(mktemp)"
+          rw_evidence_code="$(post_remote "$rw_evidence" "$rw_evidence_file")"
+          test "$rw_evidence_code" = "200"
+          jq -e '.status=="SUCCESS" and .caller_identity=="MONITOR"' "$rw_evidence_file" >/dev/null
+
+          rw_revision_key="$REMOTE_WITNESS_RUN-RW-REVISION"
+          rw_revision="$(jq -cn --arg rk "$rw_revision_key" --arg run "$REMOTE_WITNESS_RUN" '{
+            task_id:"ROLLING_WEDGE_INVESTMENT",caller_identity:"REVISER",
+            operation:"WRITE",dataset_id:"RW_REVISION_HISTORY",instance_id:"ENPLAS",
+            record_key:$rk,idempotency_key:($run+"-RW-REVISION-IDEM"),
+            payload:{Probe:"remote-rw-reviser"}
+          }')"
+          rw_revision_file="$(mktemp)"
+          rw_revision_code="$(post_remote "$rw_revision" "$rw_revision_file")"
+          test "$rw_revision_code" = "200"
+          jq -e '.status=="SUCCESS" and .caller_identity=="REVISER"' "$rw_revision_file" >/dev/null
+
+          rw_valuation_key="$REMOTE_WITNESS_RUN-RW-VALUATION"
+          rw_valuation="$(jq -cn --arg rk "$rw_valuation_key" --arg run "$REMOTE_WITNESS_RUN" '{
+            task_id:"ROLLING_WEDGE_INVESTMENT",caller_identity:"VALUATOR",
+            operation:"WRITE",dataset_id:"RW_VALUATION_HISTORY",instance_id:"ENPLAS",
+            record_key:$rk,idempotency_key:($run+"-RW-VALUATION-IDEM"),
+            payload:{Probe:"remote-rw-valuator"}
+          }')"
+          rw_valuation_file="$(mktemp)"
+          rw_valuation_code="$(post_remote "$rw_valuation" "$rw_valuation_file")"
+          test "$rw_valuation_code" = "200"
+          jq -e '.status=="SUCCESS" and .caller_identity=="VALUATOR"' "$rw_valuation_file" >/dev/null
+
+          rw_decision_key="$REMOTE_WITNESS_RUN-RW-DECISION-RUN"
+          rw_decision="$(jq -cn --arg rk "$rw_decision_key" --arg run "$REMOTE_WITNESS_RUN" '{
+            task_id:"ROLLING_WEDGE_INVESTMENT",caller_identity:"DECISION",
+            operation:"WRITE",dataset_id:"RW_RUN_LOG",instance_id:"ENPLAS",
+            record_key:$rk,idempotency_key:($run+"-RW-DECISION-IDEM"),
+            payload:{Probe:"remote-rw-decision"}
+          }')"
+          rw_decision_file="$(mktemp)"
+          rw_decision_code="$(post_remote "$rw_decision" "$rw_decision_file")"
+          test "$rw_decision_code" = "200"
+          jq -e '.status=="SUCCESS" and .caller_identity=="DECISION"' "$rw_decision_file" >/dev/null
+
+          current1="$(jq -cn --arg run "$REMOTE_WITNESS_RUN" '{
+            task_id:"ROLLING_WEDGE_INVESTMENT",caller_identity:"Rolling_Wedge_Workflow",
+            operation:"WRITE",dataset_id:"RW_CURRENT_STATE",instance_id:"ENPLAS",
+            expected_version:0,idempotency_key:($run+"-CUR1"),
+            payload:{Probe:"remote-current",State:"V1"}
+          }')"
+          current1_file="$(mktemp)"
+          current1_code="$(post_remote "$current1" "$current1_file")"
+          test "$current1_code" = "200"
+          jq -e '.status=="SUCCESS" and .caller_identity=="Rolling_Wedge_Workflow" and .version==1 and .previous_version==0 and .replayed==false and (.db_read_at|length>0)' "$current1_file" >/dev/null
+
+          current2="$(jq -cn --arg run "$REMOTE_WITNESS_RUN" '{
+            task_id:"ROLLING_WEDGE_INVESTMENT",caller_identity:"Rolling_Wedge_Workflow",
+            operation:"WRITE",dataset_id:"RW_CURRENT_STATE",instance_id:"ENPLAS",
+            expected_version:1,idempotency_key:($run+"-CUR2"),
+            payload:{Probe:"remote-current",State:"V2"}
+          }')"
+          current2_file="$(mktemp)"
+          current2_code="$(post_remote "$current2" "$current2_file")"
+          test "$current2_code" = "200"
+          current2_inv="$(jq -r '.invocation_id' "$current2_file")"
+          jq -e '.status=="SUCCESS" and .version==2 and .previous_version==1 and .replayed==false' "$current2_file" >/dev/null
+
+          current2_replay_file="$(mktemp)"
+          current2_replay_code="$(post_remote "$current2" "$current2_replay_file")"
+          test "$current2_replay_code" = "200"
+          jq -e --arg inv "$current2_inv" '.status=="SUCCESS" and .version==2 and .replayed==true and .invocation_id==$inv' "$current2_replay_file" >/dev/null
+
+          stale="$(jq -cn --arg run "$REMOTE_WITNESS_RUN" '{
+            task_id:"ROLLING_WEDGE_INVESTMENT",caller_identity:"Rolling_Wedge_Workflow",
+            operation:"WRITE",dataset_id:"RW_CURRENT_STATE",instance_id:"ENPLAS",
+            expected_version:1,idempotency_key:($run+"-CUR-STALE"),
+            payload:{Probe:"remote-stale"}
+          }')"
+          stale_file="$(mktemp)"
+          stale_code="$(post_remote "$stale" "$stale_file")"
+          test "$stale_code" = "409"
+          jq -e '.status=="FAILED" and .error=="STALE_STATE" and .current_version==2' "$stale_file" >/dev/null
+
+          current_read='{"task_id":"ROLLING_WEDGE_INVESTMENT","caller_identity":"Rolling_Wedge_Workflow","operation":"READ","dataset_id":"RW_CURRENT_STATE","instance_id":"ENPLAS","selector":{"kind":"CURRENT"}}'
+          current_read_file="$(mktemp)"
+          current_read_code="$(post_remote "$current_read" "$current_read_file")"
+          test "$current_read_code" = "200"
+          jq -e '.status=="SUCCESS" and .selector=="CURRENT" and .version==2 and .payload.State=="V2"' "$current_read_file" >/dev/null
+
+          append_count="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_append_records WHERE idempotency_key LIKE '$REMOTE_WITNESS_RUN-%';" --json | jq -r '.[0].results[0].c')"
+          current_count="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_current_state_versions WHERE idempotency_key LIKE '$REMOTE_WITNESS_RUN-%';" --json | jq -r '.[0].results[0].c')"
+          test "$append_count" -eq 6
+          test "$current_count" -eq 2
+
+          echo "REMOTE_STEP4_WITNESS_RESULT=PASS"
+          echo "REMOTE_APPEND_ROWS=$append_count"
+          echo "REMOTE_CURRENT_STATE_VERSIONS=$current_count"
+
+      - name: Cleanup remote witness rows
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute d1-runtime-prototype-db --remote --command "DELETE FROM workos_append_records WHERE idempotency_key LIKE '$REMOTE_WITNESS_RUN-%';"
+          npx wrangler d1 execute d1-runtime-prototype-db --remote --command "DELETE FROM workos_current_state_versions WHERE idempotency_key LIKE '$REMOTE_WITNESS_RUN-%';"
+          APPEND_COUNT="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_append_records;" --json | jq -r '.[0].results[0].c')"
+          CURRENT_COUNT="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_current_state_versions;" --json | jq -r '.[0].results[0].c')"
+          echo "REMOTE_POSTCLEAN_APPEND_ROWS=$APPEND_COUNT"
+          echo "REMOTE_POSTCLEAN_CURRENT_STATE_VERSIONS=$CURRENT_COUNT"
+          test "$APPEND_COUNT" -eq 0
+          test "$CURRENT_COUNT" -eq 0
+
