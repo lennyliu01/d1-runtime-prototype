@@ -1,5 +1,6 @@
 name: WorkOS D1 Candidate Step 4 Safety
 # rerun: control typing + payload canonicalization + isolated adapter target
+# rerun: remaining FX market-state caller projection fixed
 
 on:
   push:
