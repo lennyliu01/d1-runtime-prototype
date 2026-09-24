@@ -357,15 +357,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx wrangler deploy
+          SECRETS_FILE="$(mktemp)"
+          chmod 600 "$SECRETS_FILE"
+          printf 'RUNTIME_SECRET=%s\n' "$RUNTIME_SECRET" > "$SECRETS_FILE"
+          npx wrangler deploy --secrets-file "$SECRETS_FILE"
+          rm -f "$SECRETS_FILE"
           echo "REMOTE_WORKER_DEPLOYED=TRUE"
-
-      - name: Configure remote runtime secret
-        shell: bash
-        run: |
-          set -euo pipefail
-          printf '%s' "$RUNTIME_SECRET" | npx wrangler secret put RUNTIME_SECRET --name workos-d1-runtime
-          echo "REMOTE_RUNTIME_SECRET_CONFIGURED=TRUE"
 
       - name: Run remote Worker witness
         shell: bash
