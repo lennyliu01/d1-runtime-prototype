@@ -21,6 +21,11 @@
       "task_id": "ROLLING_WEDGE_INVESTMENT",
       "instance_id": "SERVICENOW",
       "spreadsheet_id": "1kPxJc6Q7vDa7jq57iJO7i_8N5qrRqpxOoAFAUBHlwXY"
+    },
+    {
+      "task_id": "ROLLING_WEDGE_INVESTMENT",
+      "instance_id": "FIGMA",
+      "spreadsheet_id": "1nGIH2qsaToj7Uh0P0nLgPfBWgAMHErk_lCjb_3gts84"
     }
   ],
   "datasets": [
@@ -2929,6 +2934,1060 @@
           "Error_or_Note": "REALITY_UNCHANGED — checked after successful checkpoint 2026-09-22T11:40:30+09:00 through 2026-09-23T11:39:30+09:00. Retrieval recovery: dynamic Investor/Newsroom listings incomplete -> official static pages + bounded SEC/Bigdata news discovery -> DEGRADED_BUT_SUFFICIENT. New items were partnerships or market/analyst commentary and did not materially clarify AI revenue/renewal, AI/cloud margin, SBC/per-share economics, or tracked M&A outcome. No accepted Evidence registered. Sep 22 regular-market close $137.00 is inside Valuation and Decision cache intervals. Persistent Data Gate Epoch 4=ALLOW; source instance SERVICENOW."
         }
       ]
+    },
+    {
+      "task_id": "ROLLING_WEDGE_INVESTMENT",
+      "dataset_id": "RW_CURRENT_STATE",
+      "instance_id": "FIGMA",
+      "source_sheet": "Current_State",
+      "source_range": "Current_State!A1:Z180",
+      "write_mode": "CURRENT_STATE",
+      "source_row_count": 117,
+      "payload": {
+        "source_sheet": "Current_State",
+        "values": [
+          [
+            "Figma — Rolling Wedge State"
+          ],
+          [],
+          [],
+          [
+            "1. Identity & Overrides"
+          ],
+          [
+            "Company_ID",
+            "FIGMA"
+          ],
+          [
+            "Company_Name",
+            "Figma"
+          ],
+          [
+            "Ticker",
+            "FIG"
+          ],
+          [
+            "Exchange",
+            "NYSE"
+          ],
+          [
+            "Currency",
+            "USD"
+          ],
+          [],
+          [],
+          [
+            "Decision_Override_Holding_Period"
+          ],
+          [
+            "Decision_Override_Max_Permanent_Loss_Pct"
+          ],
+          [
+            "Decision_Override_Min_Expected_Return_Pct"
+          ],
+          [
+            "State_As_Of",
+            "2026-09-22"
+          ],
+          [
+            "Base_Source_Materials",
+            "https://drive.google.com/file/d/102C8uCTHUIHb97LpqpgZIqsFqR2RF3xx/view"
+          ],
+          [
+            "2. Research Objective & Wedge"
+          ],
+          [
+            "Research_Objective",
+            "判断Figma的AI/Make付费转化与企业扩张，能否让Revenue Duration和Unit Economics持续优于当前市场已经支付的路径，从而形成3年以上的正向预期差。"
+          ],
+          [],
+          [],
+          [
+            "Wedge_Definition",
+            "市场可能低估Figma AI功能从高使用率转成持续付费与企业扩张的能力，以及这一新增货币化对Revenue Duration的延长；关键是新增收费而不是把原有席位收入重新包装。"
+          ],
+          [],
+          [],
+          [
+            "Key_Causal_Mechanism",
+            "AI/Make解决真实设计与生产工作 → 免费/试用使用转成持续付费 → 企业内席位、使用或产品范围扩张 → 新增收入超过推理/算力、研发和销售成本 → Revenue Duration延长且每股现金经济改善。"
+          ],
+          [],
+          [],
+          [],
+          [
+            "What_Must_Be_Proven",
+            "付费转化在多个客户/周期持续；新增ARR而非收入替代；企业扩张/续约；AI compute后的毛利与FCF经济；Wedge规模足够影响2–4年路径。第一轮已看到“开始收费后仍有人使用并额外付费”的支持，但持续性、覆盖率和单位经济仍需继续验证。"
+          ],
+          [],
+          [],
+          [],
+          [
+            "Falsifiers",
+            "AI付费只是短期试用转化、后续不续约；新增收费主要替代原有席位/套餐；AI成本吞掉增量毛利；Wedge规模长期太小不足以改变Revenue Duration。"
+          ],
+          [],
+          [],
+          [
+            "3. Frozen Scenario Definitions"
+          ],
+          [
+            "Scenario",
+            "Definition"
+          ],
+          [
+            "BEAR",
+            "AI货币化有限或替代原有收入，增长正常化更快，单位经济改善有限。"
+          ],
+          [
+            "BASE",
+            "AI带来可见增量收费与企业扩张。"
+          ],
+          [
+            "WEDGE_WORKS",
+            "AI/Make成为持续新增付费和企业扩张渠道，多个周期保持转化与留存，AI成本可控，使Revenue Duration延长并改善每股现金经济。"
+          ],
+          [],
+          [],
+          [
+            "4. Current Belief State — REVISER-owned"
+          ],
+          [
+            "Belief_State_ID",
+            "FIGMA-BELIEF-20260916-B001"
+          ],
+          [
+            "Belief_Status",
+            "ACCEPTED"
+          ],
+          [
+            "Belief_As_Of",
+            "2026-09-16"
+          ],
+          [
+            "Through_Evidence_ID",
+            "NONE — INITIAL_BASELINE_FROM_ACCEPTED_SOURCE"
+          ],
+          [
+            "Scenario",
+            "Revenue_Duration",
+            "Unit_Economics",
+            "Capital_Structure",
+            "Probability",
+            "Confidence",
+            "Causal_Rationale"
+          ],
+          [
+            "BEAR",
+            "3Y revenue CAGR assumption ~14–18%; AI/Make monetization persists but does not extend duration enough to offset base deceleration.",
+            "FCF margin ~8–12%; post-repricing AI/hosting cost and operating expense prevent meaningful economic leverage.",
+            "No scenario-specific share-count improvement is accepted; dilution and per-share burden remain unresolved.",
+            "25.0%",
+            "MEDIUM",
+            "AI monetization is real, but lower effective credit pricing plus unresolved AI cost can leave revenue growth without strong shareholder economics."
+          ],
+          [
+            "BASE",
+            "3Y revenue CAGR assumption ~22–25%; AI monetization and enterprise expansion persist, but no stronger multi-year Revenue Duration extension is accepted.",
+            "FCF margin ~14–17%; no special AI margin advantage is assumed.",
+            "The current diluted share base is carried forward because the accepted source does not support a defensible net-dilution trajectory; dilution uncertainty stays explicit.",
+            "50.0%",
+            "MEDIUM",
+            "Current evidence supports genuine AI monetization and enterprise expansion, but durability and post-repricing unit economics remain unresolved."
+          ],
+          [
+            "WEDGE_WORKS",
+            "3Y revenue CAGR assumption ~27–30%; durable paid AI/Make usage, renewal and enterprise expansion extend Revenue Duration materially beyond BASE.",
+            "FCF margin ~20–22%; AI cost per useful workload falls and gross-profit conversion improves materially relative to BASE.",
+            "The current diluted share base is retained; WEDGE requires per-share cash economics to improve rather than be absorbed by SBC/dilution.",
+            "25.0%",
+            "LOW",
+            "WEDGE_WORKS needs both Revenue Duration and Unit Economics to outperform: stronger 2029 revenue path plus materially better FCF conversion, neither yet proven."
+          ],
+          [],
+          [],
+          [
+            "5. Current Valuation State — VALUATOR-owned"
+          ],
+          [
+            "Valuation_State_ID",
+            "FIGMA-VALUATION-20260922-B004"
+          ],
+          [
+            "Valuation_Status",
+            "ACCEPTED"
+          ],
+          [
+            "Valuation_As_Of",
+            "2026-09-22"
+          ],
+          [
+            "Input_Belief_State_ID",
+            "FIGMA-BELIEF-20260916-B001"
+          ],
+          [
+            "Current_Price",
+            "22.33"
+          ],
+          [
+            "Price_As_Of",
+            "2026-09-21 close (market snapshot retrieved 2026-09-22T11:33:03+09:00)"
+          ],
+          [
+            "Valuation_Anchor_Price",
+            "22.33"
+          ],
+          [
+            "Scenario",
+            "Value",
+            "Probability_Used",
+            "Payoff"
+          ],
+          [
+            "BEAR",
+            "11.82789141",
+            "25.0%",
+            "-47.0%"
+          ],
+          [
+            "BASE",
+            "22.12411626",
+            "50.0%",
+            "-0.9%"
+          ],
+          [
+            "WEDGE_WORKS",
+            "33.7646334",
+            "25.0%",
+            "51.2%"
+          ],
+          [
+            "Expected_Terminal_Value",
+            "22.46018933"
+          ],
+          [
+            "Expected_Payoff",
+            "0.6%"
+          ],
+          [
+            "Stress_Expected_Terminal_Value",
+            "16.63717728"
+          ],
+          [
+            "Stress_Payoff",
+            "-25.5%"
+          ],
+          [
+            "Our_Accepted_Forward_Path",
+            "Accepted Belief remains BEAR 16.0% 3Y revenue CAGR / 10.0% FCF margin; BASE 23.5% / 15.5%; WEDGE_WORKS 28.5% / 21.0%. Legacy completeness migration confirms no separate attributable material capital commitment for AI/Make; dilution remains explicit unresolved per-share uncertainty rather than an invented Bear share-count path."
+          ],
+          [
+            "Price_Implied_Economic_Path",
+            "At 27x terminal FCF, $22.33 with 527.46M diluted shares implies Year-3 FCF about $436.31M and, at 15.5% FCF margin, about 23.88% 3Y revenue CAGR from the $1.480332B annualized Q2-2026 revenue base."
+          ],
+          [
+            "Edge_State",
+            "EDGE_THIN"
+          ],
+          [
+            "Robustness_Summary",
+            "27x primary expected payoff +0.6%; 22x plus 10% dilution stress -25.5%. Positive gap is thin and erased by stress; downside map remains COMPLETE and dilution remains explicit unresolved uncertainty."
+          ],
+          [
+            "Deterministic_Lower_Boundary",
+            "16.63717728"
+          ],
+          [
+            "Deterministic_Lower_Source",
+            "Stress_Payoff=0 → Price=Stress_Expected_Terminal_Value"
+          ],
+          [
+            "Deterministic_Upper_Boundary",
+            "22.46018933"
+          ],
+          [
+            "Deterministic_Upper_Source",
+            "Expected_Payoff=0 → Price=Expected_Terminal_Value"
+          ],
+          [
+            "Effective_Price_Validity_Lower",
+            "20.097"
+          ],
+          [
+            "Effective_Price_Validity_Upper",
+            "22.46018933"
+          ],
+          [
+            "Valuation_Method",
+            "3Y terminal equity FCF multiple; 27x primary / 22x stress + 10% dilution",
+            "Bridge_Status",
+            "REPRODUCIBLE",
+            "VALUATION_BRIDGE",
+            "BaseRevenue=1480332000 USD (=370083000*4); BaseDilutedShares=527460000; BEAR[g=.16,m=.10]; BASE[g=.235,m=.155]; WEDGE[g=.285,m=.21]; primary shares flat; Value=(BaseRevenue*(1+g)^3*m)*27/BaseDilutedShares; Stress uses 22x and BaseDilutedShares*1.10; Reverse uses Price*BaseDilutedShares/27/.155 then CAGR. DOWNSIDE_MAP: (1) Revenue Duration deceleration / insufficient AI persistence -> BEAR g=.16, ALREADY_ABSORBED; (2) post-repricing AI/hosting and operating-cost burden -> BEAR FCF margin=.10, ALREADY_ABSORBED; (3) dilution/per-share burden -> UNRESOLVED_UNCERTAINTY because accepted Belief supports no scenario-specific numeric dilution path; primary Bear does not invent one, while 10% dilution remains explicit Value-layer stress only; (4) Material Capital Commitment=NONE/RESOLVED_NONE -> no separate capital deduction. Cash/debt/distribution loss paths are not accepted in current Belief. DOUBLE_COUNT_CHECK=PASS.",
+            "Downside_Map_Status",
+            "COMPLETE"
+          ],
+          [
+            "6. Current Decision State — DECISION-owned"
+          ],
+          [
+            "Decision_State_ID",
+            "FIGMA-DECISION-20260922-B004"
+          ],
+          [
+            "Decision_Status",
+            "ACCEPTED"
+          ],
+          [
+            "Decision_As_Of",
+            "2026-09-22"
+          ],
+          [
+            "Input_Valuation_State_ID",
+            "FIGMA-VALUATION-20260922-B004"
+          ],
+          [
+            "Constraint_State_ID",
+            "HP=3Y|MPL=-50%|MER=0%"
+          ],
+          [
+            "Resolved_Holding_Period",
+            "3Y"
+          ],
+          [
+            "Resolved_Max_Permanent_Loss",
+            "-50%"
+          ],
+          [
+            "Resolved_Minimum_Expected_Return",
+            "0%"
+          ],
+          [
+            "Action",
+            "WAIT"
+          ],
+          [
+            "Decision_Rationale",
+            "At $22.33, Bear loss is -47.0%, inside the -50% limit, and expected payoff is +0.6%; however EDGE_THIN and a -25.5% stress do not support BUY. WEDGE upside and the unchanged hard-loss boundary support WAIT rather than PASS."
+          ],
+          [
+            "Decision_Boundary",
+            "WAIT: BUY requires a refreshed Valuation with EDGE_OPEN and stronger stress support; hard PASS threshold under unchanged Value is Price > $23.66 where Bear loss breaches -50%."
+          ],
+          [
+            "Decision_Price",
+            "22.33"
+          ],
+          [
+            "Decision_Price_As_Of",
+            "2026-09-21 close (market snapshot retrieved 2026-09-22T11:33:03+09:00)"
+          ],
+          [
+            "Decision_Price_Lower",
+            "NONE"
+          ],
+          [
+            "Decision_Price_Upper",
+            "23.65578282"
+          ],
+          [],
+          [
+            "7. Next Reality Watch — REVISER → MONITOR"
+          ],
+          [
+            "Type",
+            "Observable",
+            "Why_it_matters",
+            "Trigger_Rule",
+            "Last_Checked"
+          ],
+          [
+            "ACTUAL",
+            "Paid AI/Make conversion, renewal and enterprise expansion remain durable across larger cohorts.",
+            "Direct test of whether AI monetization actually extends Revenue Duration rather than only lifting the current revenue level.",
+            "Trigger on new cohort/renewal/expansion evidence materially changing persistence versus the ~22–25% BASE path.",
+            "2026-09-16"
+          ],
+          [
+            "ACTUAL",
+            "Post-repricing AI credits / incremental ARR continue growing despite lower effective price per credit.",
+            "Tests whether the August repricing expands economically valuable usage rather than merely subsidizing consumption.",
+            "Trigger on new paid-credit / AI ARR / enterprise-usage evidence showing material persistence or deterioration.",
+            "2026-09-16"
+          ],
+          [
+            "ACTUAL",
+            "AI compute/hosting economics and gross margin improve as usage scales.",
+            "Direct test of cost per useful AI workload and whether monetization converts into gross profit.",
+            "Trigger on material GAAP/non-GAAP GM movement or any AI-specific cost/margin disclosure changing unit-economics confidence.",
+            "2026-09-16"
+          ],
+          [
+            "ACTUAL",
+            "FCF margin, SBC/dilution and per-share cash economics improve alongside AI growth.",
+            "Tests whether product success reaches shareholder economics instead of being absorbed by operating cost or dilution.",
+            "Trigger on material FCF-margin, SBC/share-count or per-share cash-conversion evidence.",
+            "2026-09-16"
+          ],
+          [],
+          [
+            "8. Agent Interface"
+          ],
+          [
+            "MONITOR_READ",
+            "A5:H39 + A97:E102 + A115:H117 + latest MONITOR row in Run_Log. Reality-only; do not read valuation/decision for trigger detection. Capital-commitment stage transitions are Reality candidates; price is not."
+          ],
+          [
+            "MONITOR_WRITE",
+            "Append accepted material Actual to Evidence_History with durable original Evidence_ID, Status=ACCEPTED, Route=REVISER; preserve affected segment / causal driver in Causal_Map; append one MONITOR Run_Log row every check. MONITOR registration does not mark evidence consumed."
+          ],
+          [
+            "REVISER_READ",
+            "A5:H50 + A115:H117 + Workflow-routed deduplicated Pending_Evidence_IDs from Evidence_History + relevant Revision_History row / Review_Status when needed + successful REVISER Run_Log consumption checkpoints."
+          ],
+          [
+            "REVISER_WRITE",
+            "Update A43:G50 Belief state + A99:E102 Next Reality Watch + A115:H117 Material Capital Commitment State when needed; append Revision_History and Run_Log. REVISION SUCCESS must record Consumed_Evidence_IDs only after all writes succeed. FULL_REFRESH proposal writes Review_Status=PENDING."
+          ],
+          [
+            "VALUATOR_READ",
+            "Frozen scenarios A35:B39 + accepted Belief A43:G50 + accepted Material Capital Commitment A115:H117 + prior valuation A54:H80 when needed + bounded current market inputs."
+          ],
+          [
+            "VALUATOR_WRITE",
+            "Update A54:H80 Current Valuation State including Downside_Map_Status; append Valuation_History including Downside_Map_Status and Run_Log. Accepted valuation requires Bridge_Status=REPRODUCIBLE and Downside_Map_Status=COMPLETE."
+          ],
+          [
+            "DECISION_READ",
+            "A54:H79 accepted Valuation + prior Decision A81:H95 when needed + Workflow-resolved Constraint packet + Workflow-provided bounded current price snapshot. DECISION must not independently resolve defaults / overrides."
+          ],
+          [
+            "DECISION_WRITE",
+            "Update A81:H95 Current Decision State; append Run_Log only."
+          ],
+          [
+            "WORKFLOW_CACHE_KEYS",
+            "Belief_State_ID; Pending_Evidence_IDs; unresolved Review_Status=PENDING; pre-Value legacy completeness gate: Commitment_ID=MIGRATION_UNKNOWN or Evidence_Maturity=MIGRATION_GAP → REVISER/LEGACY_BELIEF_COMPLETENESS_MIGRATION; Valuation_State_ID + Input_Belief_State_ID + Bridge_Status + Downside_Map_Status + Anchor/Envelope; Decision_State_ID + Input_Valuation_State_ID + Constraint_State_ID + Decision_Price_Lower/Upper. Material Capital Commitment State is inside Belief dependency, not a separate cache key."
+          ],
+          [
+            "FROZEN_BY_DEFAULT",
+            "Research_Objective, Wedge_Definition, Key_Causal_Mechanism, What_Must_Be_Proven, Falsifiers, Frozen Scenario Definitions."
+          ],
+          [
+            "9. Material Capital Commitment State — REVISER-owned"
+          ],
+          [
+            "Commitment_ID",
+            "Scope_Segment",
+            "Stage",
+            "Committed_Capital",
+            "Reversibility",
+            "Evidence_Maturity",
+            "Last_Evidence_ID",
+            "Next_Transition_Watch"
+          ],
+          [
+            "NONE",
+            "AI / Make Wedge",
+            "NONE",
+            "N/A — no material capital commitment identified in accepted baseline",
+            "N/A",
+            "RESOLVED_NONE",
+            "NONE — LEGACY_BASELINE_MIGRATION",
+            "Any material AI infrastructure, acquisition, capacity or other irreversible commitment not already captured in recurring Unit Economics."
+          ]
+        ]
+      }
+    },
+    {
+      "task_id": "ROLLING_WEDGE_INVESTMENT",
+      "dataset_id": "RW_EVIDENCE_HISTORY",
+      "instance_id": "FIGMA",
+      "source_sheet": "Evidence_History",
+      "source_range": "Evidence_History!A1:O180",
+      "write_mode": "APPEND_ONLY",
+      "record_key_field": "Evidence_ID",
+      "headers": [
+        "Evidence_ID",
+        "Event_DateTime",
+        "Published_At",
+        "Discovered_At",
+        "Evidence_Type",
+        "Observed_Fact",
+        "Causal_Map",
+        "Source_Tier",
+        "Source_Title",
+        "Source_URL",
+        "Trigger_Cluster_ID",
+        "Route",
+        "Status",
+        "Monitor_Run_ID",
+        "Note"
+      ],
+      "record_count": 0,
+      "records": []
+    },
+    {
+      "task_id": "ROLLING_WEDGE_INVESTMENT",
+      "dataset_id": "RW_REVISION_HISTORY",
+      "instance_id": "FIGMA",
+      "source_sheet": "Revision_History",
+      "source_range": "Revision_History!A1:T180",
+      "write_mode": "APPEND_ONLY",
+      "record_key_field": "Revision_ID",
+      "headers": [
+        "Revision_ID",
+        "Belief_State_ID",
+        "As_Of",
+        "Mode",
+        "State_Action",
+        "Revision_Level",
+        "Evidence_IDs",
+        "Through_Evidence_ID",
+        "Primary_Causal_Mechanism",
+        "Direct_Variable",
+        "Affected_Scenarios",
+        "Probability_Changed",
+        "Confidence_Changed",
+        "Before_Summary",
+        "After_Summary",
+        "Change_Rationale",
+        "Next_Reality_Watch",
+        "Accepted",
+        "Reviser_Run_ID",
+        "Review_Status"
+      ],
+      "record_count": 3,
+      "records": [
+        {
+          "Revision_ID": "FIGMA-REVISION-20260916-B001",
+          "Belief_State_ID": "FIGMA-BELIEF-20260916-B001",
+          "As_Of": "2026-09-16",
+          "Mode": "INITIAL_BASELINE",
+          "State_Action": "UPDATE",
+          "Revision_Level": "INITIAL_BASELINE",
+          "Evidence_IDs": "NONE",
+          "Through_Evidence_ID": "NONE — INITIAL_BASELINE_FROM_ACCEPTED_SOURCE",
+          "Primary_Causal_Mechanism": "AI/Make paid monetization + enterprise expansion → Revenue Duration; AI workload cost compression → FCF conversion",
+          "Direct_Variable": "INITIAL_BASELINE: Revenue Duration + Unit Economics + Capital Structure + Probability",
+          "Affected_Scenarios": "BEAR|BASE|WEDGE_WORKS",
+          "Probability_Changed": "INITIALIZED",
+          "Confidence_Changed": "INITIALIZED",
+          "Before_Summary": "NOT_INITIALIZED",
+          "After_Summary": "BEAR 25% / BASE 50% / WEDGE_WORKS 25%; monetization is real, while post-repricing unit economics and durable Revenue Duration remain unproven.",
+          "Change_Rationale": "Accepted research says the market already knows the AI monetization/cost-control mechanisms; BASE therefore follows the accepted Street path and WEDGE requires both faster duration and materially better FCF economics.",
+          "Next_Reality_Watch": "AI/Make renewal/enterprise expansion; post-repricing paid usage; AI compute/GM economics; FCF/SBC/per-share outcomes.",
+          "Accepted": "TRUE",
+          "Reviser_Run_ID": "FIGMA-RUN-REVISER-20260916-B001",
+          "Review_Status": ""
+        },
+        {
+          "Revision_ID": "FIGMA-REVISION-20260917-C001",
+          "Belief_State_ID": "FIGMA-BELIEF-20260916-B001",
+          "As_Of": "2026-09-17",
+          "Mode": "CONTROLLED_BASELINE_CLEANUP",
+          "State_Action": "MAINTAIN",
+          "Revision_Level": "OWNERSHIP_CLEANUP",
+          "Evidence_IDs": "NONE — GOVERNANCE_MIGRATION",
+          "Through_Evidence_ID": "NONE — INITIAL_BASELINE_FROM_ACCEPTED_SOURCE",
+          "Primary_Causal_Mechanism": "Removed market-price / Street-path clauses from REVISER-owned frozen definitions and Belief wording while preserving the same numeric operating assumptions.",
+          "Direct_Variable": "NONE — OWNERSHIP_BOUNDARY",
+          "Affected_Scenarios": "BASE|WEDGE_WORKS",
+          "Probability_Changed": "FALSE",
+          "Confidence_Changed": "FALSE",
+          "Before_Summary": "Frozen definitions and accepted Belief wording mixed operating economics with market / Street comparisons.",
+          "After_Summary": "REVISER-owned state now describes company economics only; numeric growth, margin and probability assumptions are unchanged.",
+          "Change_Rationale": "Semantic-preserving ownership cleanup for Finding 5; no new Actual, no probability change, no new Belief State.",
+          "Next_Reality_Watch": "UNCHANGED",
+          "Accepted": "TRUE",
+          "Reviser_Run_ID": "NONE — CONTROLLED_MIGRATION",
+          "Review_Status": ""
+        },
+        {
+          "Revision_ID": "FIGMA-REVISION-20260917-LBCM001",
+          "Belief_State_ID": "FIGMA-BELIEF-20260916-B001",
+          "As_Of": "2026-09-17",
+          "Mode": "LEGACY_BELIEF_COMPLETENESS_MIGRATION",
+          "State_Action": "MAINTAIN",
+          "Revision_Level": "MIGRATION_COMPLETENESS",
+          "Evidence_IDs": "NONE — BASELINE_SOURCE_RECLASSIFICATION",
+          "Through_Evidence_ID": "NONE — INITIAL_BASELINE_FROM_ACCEPTED_SOURCE",
+          "Primary_Causal_Mechanism": "Accepted baseline identifies AI workload / hosting cost and dilution uncertainty but no separate material capital commitment for the AI / Make Wedge.",
+          "Direct_Variable": "CAPITAL_COMMITMENT",
+          "Affected_Scenarios": "BEAR|BASE|WEDGE_WORKS",
+          "Probability_Changed": "FALSE",
+          "Confidence_Changed": "FALSE",
+          "Before_Summary": "Capital commitment block was MIGRATION_UNKNOWN; accepted source focuses on recurring AI cost economics and per-share uncertainty.",
+          "After_Summary": "No attributable material capital commitment is identified; AI/hosting cost remains Unit Economics and dilution remains Capital Structure uncertainty.",
+          "Change_Rationale": "Schema-completeness migration only. No new Actual, no probability change and no invented capital loss.",
+          "Next_Reality_Watch": "Watch for material AI infrastructure, acquisition, capacity or irreversible capital deployment beyond recurring operating costs.",
+          "Accepted": "TRUE",
+          "Reviser_Run_ID": "20260917T2142JST-REVISER-FIGMA-LBCM",
+          "Review_Status": ""
+        }
+      ]
+    },
+    {
+      "task_id": "ROLLING_WEDGE_INVESTMENT",
+      "dataset_id": "RW_VALUATION_HISTORY",
+      "instance_id": "FIGMA",
+      "source_sheet": "Valuation_History",
+      "source_range": "Valuation_History!A1:AE180",
+      "write_mode": "APPEND_ONLY",
+      "record_key_field": "Valuation_State_ID",
+      "headers": [
+        "Valuation_State_ID",
+        "As_Of",
+        "Input_Belief_State_ID",
+        "Current_Price",
+        "Price_As_Of",
+        "Valuation_Anchor_Price",
+        "Bear_Value",
+        "Bear_Probability",
+        "Bear_Payoff",
+        "Base_Value",
+        "Base_Probability",
+        "Base_Payoff",
+        "Wedge_Value",
+        "Wedge_Probability",
+        "Wedge_Payoff",
+        "Expected_Terminal_Value",
+        "Expected_Payoff",
+        "Stress_Expected_Terminal_Value",
+        "Stress_Payoff",
+        "Our_Accepted_Forward_Path",
+        "Price_Implied_Economic_Path",
+        "Edge_State",
+        "Robustness_Summary",
+        "Deterministic_Boundaries",
+        "Effective_Price_Validity_Envelope",
+        "Valuator_Run_ID",
+        "Valuation_Method",
+        "VALUATION_BRIDGE",
+        "Bridge_Source_Locators",
+        "Bridge_Status",
+        "Downside_Map_Status"
+      ],
+      "record_count": 4,
+      "records": [
+        {
+          "Valuation_State_ID": "FIGMA-VALUATION-20260916-B001",
+          "As_Of": "2026-09-16",
+          "Input_Belief_State_ID": "FIGMA-BELIEF-20260916-B001",
+          "Current_Price": "23.88",
+          "Price_As_Of": "2026-09-16",
+          "Valuation_Anchor_Price": "23.88",
+          "Bear_Value": "12.79557063",
+          "Bear_Probability": "0.25",
+          "Bear_Payoff": "-0.464172084",
+          "Base_Value": "23.93416396",
+          "Base_Probability": "0.5",
+          "Base_Payoff": "0.002268172557",
+          "Wedge_Value": "36.52703061",
+          "Wedge_Probability": "0.25",
+          "Wedge_Payoff": "0.5296076471",
+          "Expected_Terminal_Value": "24.29773229",
+          "Expected_Payoff": "0.01749297706",
+          "Stress_Expected_Terminal_Value": "17.99832022",
+          "Stress_Payoff": "-0.2463014985",
+          "Our_Accepted_Forward_Path": "BASE ~23.5% 3Y growth / 15.5% FCF margin; WEDGE ~28.5% / 21% from durable AI/Make plus cost compression.",
+          "Price_Implied_Economic_Path": "27x FCF translation implies ~23.4% 3Y revenue CAGR at 15.5% margin from current price, essentially accepted BASE/Street.",
+          "Edge_State": "PRICED_IN",
+          "Robustness_Summary": "Expected +1.7%; 22x +10% dilution stress -24.6%; meaningful upside requires WEDGE_WORKS.",
+          "Deterministic_Boundaries": "Lower=$18.00 (Stress_Payoff=0); Upper=$23.93 (Base_Payoff=0)",
+          "Effective_Price_Validity_Envelope": "$21.49–$23.93",
+          "Valuator_Run_ID": "FIGMA-RUN-VALUATOR-20260916-B001",
+          "Valuation_Method": "Terminal FCF Multiple; primary 27x, stress 22x + 10% dilution",
+          "VALUATION_BRIDGE": "Historical B001 retained; exact base-input/share-count/formula lineage was not fully persisted. Do not back-solve missing historical inputs.",
+          "Bridge_Source_Locators": "FIGMA Current_State / Valuation_History B001",
+          "Bridge_Status": "REPRODUCIBILITY_GAP",
+          "Downside_Map_Status": "MIGRATION_GAP"
+        },
+        {
+          "Valuation_State_ID": "FIGMA-VALUATION-20260917-B002",
+          "As_Of": "2026-09-17",
+          "Input_Belief_State_ID": "FIGMA-BELIEF-20260916-B001",
+          "Current_Price": "22.875",
+          "Price_As_Of": "2026-09-16T15:35:54Z",
+          "Valuation_Anchor_Price": "22.875",
+          "Bear_Value": "11.82789141",
+          "Bear_Probability": "0.25",
+          "Bear_Payoff": "-0.4829337088",
+          "Base_Value": "22.12411626",
+          "Base_Probability": "0.5",
+          "Base_Payoff": "-0.03282551872",
+          "Wedge_Value": "33.7646334",
+          "Wedge_Probability": "0.25",
+          "Wedge_Payoff": "0.4760495476",
+          "Expected_Terminal_Value": "22.46018933",
+          "Expected_Payoff": "-0.01813379967",
+          "Stress_Expected_Terminal_Value": "16.63717728",
+          "Stress_Payoff": "-0.2726917035",
+          "Our_Accepted_Forward_Path": "Exact scenario points use accepted Belief midpoints: BEAR 16.0%/10.0%; BASE 23.5%/15.5%; WEDGE 28.5%/21.0%; primary diluted share base held constant.",
+          "Price_Implied_Economic_Path": "27x terminal FCF at $22.875 and 527.46M diluted shares implies Year-3 FCF $446.875833M; at 15.5% margin implies ~24.88% 3Y revenue CAGR from $1.480332B annualized Q2-2026 revenue.",
+          "Edge_State": "PRICED_IN",
+          "Robustness_Summary": "27x primary expected payoff -1.8%; 22x +10% dilution stress -27.3%; exact bridge persisted.",
+          "Deterministic_Boundaries": "Lower=Expected_Terminal_Value=22.460189332572806; Upper=Wedge_Value=33.764633401501264",
+          "Effective_Price_Validity_Envelope": "22.460189332572806 to 25.1625",
+          "Valuator_Run_ID": "FIGMA-RUN-VALUATOR-20260917-B002",
+          "Valuation_Method": "3Y terminal equity FCF multiple; 27x primary / 22x stress + 10% dilution",
+          "VALUATION_BRIDGE": "BaseRevenue=1480332000 USD (=Q2-2026 revenue 370083000*4); BaseDilutedShares=527460000; ScenarioPointRule=midpoint; BEAR[g=0.16,FCFMargin=0.10]; BASE[g=0.235,FCFMargin=0.155]; WEDGE[g=0.285,FCFMargin=0.21]; TerminalRevenue=BaseRevenue*(1+g)^3; TerminalFCF=TerminalRevenue*FCFMargin; ScenarioValue=TerminalFCF*27/BaseDilutedShares; Stress=TerminalFCF*22/(BaseDilutedShares*1.10); Reverse=Price*BaseDilutedShares/27/0.155 then CAGR; no separate net-cash/debt adjustment.",
+          "Bridge_Source_Locators": "Belief=FIGMA-BELIEF-20260916-B001; Base_Source=102C8uCTHUIHb97LpqpgZIqsFqR2RF3xx; exact Q2-2026 revenue/diluted shares + quote=Bigdata Corporate Fundamentals (FMP), quote 2026-09-16T15:35:54Z; 27x/22x+10% dilution carried from B001 as explicit fresh valuation assumptions.",
+          "Bridge_Status": "REPRODUCIBLE",
+          "Downside_Map_Status": "MIGRATION_GAP"
+        },
+        {
+          "Valuation_State_ID": "FIGMA-VALUATION-20260917-B003",
+          "As_Of": "2026-09-17",
+          "Input_Belief_State_ID": "FIGMA-BELIEF-20260916-B001",
+          "Current_Price": "23.06",
+          "Price_As_Of": "2026-09-17T21:59:40+09:00 Bigdata snapshot",
+          "Valuation_Anchor_Price": "23.06",
+          "Bear_Value": "11.82789141",
+          "Bear_Probability": "0.25",
+          "Bear_Payoff": "-0.487081899",
+          "Base_Value": "22.12411626",
+          "Base_Probability": "0.5",
+          "Base_Payoff": "-0.04058472423",
+          "Wedge_Value": "33.7646334",
+          "Wedge_Probability": "0.25",
+          "Wedge_Payoff": "0.4642078665",
+          "Expected_Terminal_Value": "22.46018933",
+          "Expected_Payoff": "-0.02601087023",
+          "Stress_Expected_Terminal_Value": "16.63717728",
+          "Stress_Payoff": "-0.2785265705",
+          "Our_Accepted_Forward_Path": "Accepted BEAR 16.0% CAGR / 10.0% FCF; BASE 23.5% / 15.5%; WEDGE 28.5% / 21.0%. No separate attributable material capital commitment; dilution stays unresolved rather than fabricated into Bear.",
+          "Price_Implied_Economic_Path": "At 27x, $23.06 implies Year-3 FCF ~$450.49M and ~25.22% 3Y revenue CAGR at 15.5% FCF margin from $1.480332B annualized Q2-2026 revenue.",
+          "Edge_State": "PRICED_IN",
+          "Robustness_Summary": "Expected -2.6%; 22x +10% dilution stress -27.9%; downside map COMPLETE with dilution retained as unresolved uncertainty.",
+          "Deterministic_Boundaries": "Lower=Expected_Terminal_Value=22.460189332572806; Upper=Wedge_Value=33.764633401501264",
+          "Effective_Price_Validity_Envelope": "22.460189332572806 to 25.366",
+          "Valuator_Run_ID": "FIGMA-RUN-VALUATOR-20260917-B003",
+          "Valuation_Method": "3Y terminal equity FCF multiple; 27x primary / 22x stress + 10% dilution",
+          "VALUATION_BRIDGE": "BaseRevenue=1480332000; BaseDilutedShares=527460000; BEAR[g=.16,m=.10]; BASE[g=.235,m=.155]; WEDGE[g=.285,m=.21]; primary shares flat; Value=(BaseRevenue*(1+g)^3*m)*27/BaseDilutedShares; Stress=22x with shares*1.10. DOWNSIDE_MAP[duration=BEAR g ALREADY_ABSORBED; AI/hosting+opex=BEAR margin ALREADY_ABSORBED; dilution=UNRESOLVED_UNCERTAINTY, no invented primary deduction, +10% Value stress only; capital commitment=NONE/RESOLVED_NONE]; DOUBLE_COUNT_CHECK=PASS.",
+          "Bridge_Source_Locators": "Belief=FIGMA-BELIEF-20260916-B001; Base_Source=102C8uCTHUIHb97LpqpgZIqsFqR2RF3xx; CapitalCommitment=Current_State A115:H117; exact formula/base-input lineage=FIGMA-VALUATION-20260917-B002; current quote=Bigdata FIG $23.06 retrieved 2026-09-17T21:59:40+09:00; 27x/22x/+10% stress assumptions carried from B002.",
+          "Bridge_Status": "REPRODUCIBLE",
+          "Downside_Map_Status": "COMPLETE"
+        },
+        {
+          "Valuation_State_ID": "FIGMA-VALUATION-20260922-B004",
+          "As_Of": "2026-09-22",
+          "Input_Belief_State_ID": "FIGMA-BELIEF-20260916-B001",
+          "Current_Price": "22.33",
+          "Price_As_Of": "2026-09-21 close (market snapshot retrieved 2026-09-22T11:33:03+09:00)",
+          "Valuation_Anchor_Price": "22.33",
+          "Bear_Value": "11.82789141",
+          "Bear_Probability": "0.25",
+          "Bear_Payoff": "-0.4703138643",
+          "Base_Value": "22.12411626",
+          "Base_Probability": "0.5",
+          "Base_Payoff": "-0.009220051052",
+          "Wedge_Value": "33.7646334",
+          "Wedge_Probability": "0.25",
+          "Wedge_Payoff": "0.5120749395",
+          "Expected_Terminal_Value": "22.46018933",
+          "Expected_Payoff": "0.005830243171",
+          "Stress_Expected_Terminal_Value": "16.63717728",
+          "Stress_Payoff": "-0.2549405607",
+          "Our_Accepted_Forward_Path": "Accepted BEAR 16.0% CAGR / 10.0% FCF; BASE 23.5% / 15.5%; WEDGE 28.5% / 21.0%. No separate attributable material capital commitment; dilution stays unresolved rather than fabricated into Bear.",
+          "Price_Implied_Economic_Path": "At 27x terminal FCF, $22.33 with 527.46M diluted shares implies Year-3 FCF about $436.31M and, at 15.5% FCF margin, about 23.88% 3Y revenue CAGR from the $1.480332B annualized Q2-2026 revenue base.",
+          "Edge_State": "EDGE_THIN",
+          "Robustness_Summary": "27x primary expected payoff +0.6%; 22x plus 10% dilution stress -25.5%. Positive gap is thin and erased by stress; downside map remains COMPLETE and dilution remains explicit unresolved uncertainty.",
+          "Deterministic_Boundaries": "Lower=Stress_Expected_Terminal_Value=16.637177283387263; Upper=Expected_Terminal_Value=22.460189332572806",
+          "Effective_Price_Validity_Envelope": "20.097 to 22.460189332572806",
+          "Valuator_Run_ID": "FIGMA-RUN-VALUATOR-20260922-B004",
+          "Valuation_Method": "3Y terminal equity FCF multiple; 27x primary / 22x stress + 10% dilution",
+          "VALUATION_BRIDGE": "BaseRevenue=1480332000; BaseDilutedShares=527460000; BEAR[g=.16,m=.10]; BASE[g=.235,m=.155]; WEDGE[g=.285,m=.21]; primary shares flat; Value=(BaseRevenue*(1+g)^3*m)*27/BaseDilutedShares; Stress=22x with shares*1.10. DOWNSIDE_MAP[duration=BEAR g ALREADY_ABSORBED; AI/hosting+opex=BEAR margin ALREADY_ABSORBED; dilution=UNRESOLVED_UNCERTAINTY, no invented primary deduction, +10% Value stress only; capital commitment=NONE/RESOLVED_NONE]; DOUBLE_COUNT_CHECK=PASS.",
+          "Bridge_Source_Locators": "Belief=FIGMA-BELIEF-20260916-B001; Base_Source=102C8uCTHUIHb97LpqpgZIqsFqR2RF3xx; CapitalCommitment=Current_State A115:H117; exact formula/base-input lineage=FIGMA-VALUATION-20260917-B003; current quote=market snapshot FIG $22.33 at 2026-09-21 close, retrieved 2026-09-22T11:33:03+09:00; 27x/22x/+10% stress assumptions carried from B003.",
+          "Bridge_Status": "REPRODUCIBLE",
+          "Downside_Map_Status": "COMPLETE"
+        }
+      ]
+    },
+    {
+      "task_id": "ROLLING_WEDGE_INVESTMENT",
+      "dataset_id": "RW_RUN_LOG",
+      "instance_id": "FIGMA",
+      "source_sheet": "Run_Log",
+      "source_range": "Run_Log!A1:K180",
+      "write_mode": "APPEND_ONLY",
+      "record_key_field": "Run_ID",
+      "headers": [
+        "Run_ID",
+        "Scheduled_Date",
+        "Started_At",
+        "Completed_At",
+        "Role",
+        "Status",
+        "Input_Checkpoint",
+        "Triggers_Found",
+        "Output_ID",
+        "Handoff_Route",
+        "Error_or_Note"
+      ],
+      "record_count": 20,
+      "records": [
+        {
+          "Run_ID": "20260916T1152JST-MONITOR-FIGMA",
+          "Scheduled_Date": "2026-09-16",
+          "Started_At": "2026-09-16T11:52:50+09:00",
+          "Completed_At": "2026-09-16T11:52:50+09:00",
+          "Role": "MONITOR",
+          "Status": "PARTIAL",
+          "Input_Checkpoint": "NONE — initial run",
+          "Triggers_Found": "0",
+          "Output_ID": "",
+          "Handoff_Route": "STOP",
+          "Error_or_Note": "Initial MONITOR checkpoint. Official Figma IR checked through 2026-09-16 11:52 JST; Q2 2026 results (2026-08-05) and the 2026-09-08 conference appearance were reviewed, with no new fact clearly crossing the Trigger Gate. PARTIAL: no prior successful checkpoint, no registered Market Trigger Policy, and no synchronized valuation baseline; market trigger not testable."
+        },
+        {
+          "Run_ID": "FIGMA-RUN-REVISER-20260916-B001",
+          "Scheduled_Date": "2026-09-16",
+          "Started_At": "2026-09-16T19:01+09:00",
+          "Completed_At": "2026-09-16T19:01+09:00",
+          "Role": "REVISER",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "Base_Source_Materials=102C8uCTHUIHb97LpqpgZIqsFqR2RF3xx; SOURCE_STATUS=ACCEPTED",
+          "Triggers_Found": "INITIAL_BASELINE",
+          "Output_ID": "FIGMA-BELIEF-20260916-B001",
+          "Handoff_Route": "NEXT=VALUATOR",
+          "Error_or_Note": "INITIAL_BASELINE from accepted source; no Evidence_ID fabricated."
+        },
+        {
+          "Run_ID": "FIGMA-RUN-VALUATOR-20260916-B001",
+          "Scheduled_Date": "2026-09-16",
+          "Started_At": "2026-09-16T19:01+09:00",
+          "Completed_At": "2026-09-16T19:01+09:00",
+          "Role": "VALUATOR",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "Belief_State_ID=FIGMA-BELIEF-20260916-B001; Price=$23.88",
+          "Triggers_Found": "MISSING_VALUATION_STATE",
+          "Output_ID": "FIGMA-VALUATION-20260916-B001",
+          "Handoff_Route": "NEXT=DECISION",
+          "Error_or_Note": "Bootstrap valuation; fresh Bigdata.com 2026-09-16 market snapshot. Current $23.88 is independent runtime data, not the historical $23.88 reference in baseline research. 27x FCF primary; 22x +10% dilution stress."
+        },
+        {
+          "Run_ID": "FIGMA-RUN-DECISION-20260916-B001",
+          "Scheduled_Date": "2026-09-16",
+          "Started_At": "2026-09-16T19:01+09:00",
+          "Completed_At": "2026-09-16T19:01+09:00",
+          "Role": "DECISION",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "Valuation_State_ID=FIGMA-VALUATION-20260916-B001; Constraint_State_ID=HP=3Y|MPL=-50%|MER=0%",
+          "Triggers_Found": "MISSING_DECISION_STATE",
+          "Output_ID": "FIGMA-DECISION-20260916-B001",
+          "Handoff_Route": "NEXT=STOP",
+          "Error_or_Note": "Action=WAIT | Constraint_State_ID=HP=3Y|MPL=-50%|MER=0% | Decision_Boundary=WAIT: BUY requires refreshed EDGE_OPEN + stronger stress support; hard PASS threshold Price > $25.59."
+        },
+        {
+          "Run_ID": "20260916T2034JST-MONITOR-FIGMA",
+          "Scheduled_Date": "2026-09-16",
+          "Started_At": "2026-09-16T20:34:00+09:00",
+          "Completed_At": "2026-09-16T20:34:00+09:00",
+          "Role": "MONITOR",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "NONE — first successful MONITOR after bootstrap; bounded lookback reference=20260916T1152JST-MONITOR-FIGMA (PARTIAL)",
+          "Triggers_Found": "0",
+          "Output_ID": "",
+          "Handoff_Route": "WORKFLOW/CACHE_CHECK",
+          "Error_or_Note": "REALITY_UNCHANGED — checked through 2026-09-16T20:34+09:00; no new material Actual found in the bounded lookback after the prior 11:52 PARTIAL observation. Official Figma IR latest material quarterly result remains Q2 2026 dated 2026-08-05; no newer material fact found."
+        },
+        {
+          "Run_ID": "FIGMA-RUN-VALUATOR-20260917-B002",
+          "Scheduled_Date": "",
+          "Started_At": "",
+          "Completed_At": "",
+          "Role": "VALUATOR",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "Belief_State_ID=FIGMA-BELIEF-20260916-B001; Migration_From=FIGMA-VALUATION-20260916-B001",
+          "Triggers_Found": "REPRODUCIBILITY_GAP_MIGRATION",
+          "Output_ID": "FIGMA-VALUATION-20260917-B002",
+          "Handoff_Route": "NEXT=DECISION",
+          "Error_or_Note": "Controlled fresh valuation under exact-input bridge invariant; B001 preserved as historical REPRODUCIBILITY_GAP; B002 blind-reconstructible from persisted exact inputs/formula."
+        },
+        {
+          "Run_ID": "FIGMA-RUN-DECISION-20260917-B002",
+          "Scheduled_Date": "",
+          "Started_At": "",
+          "Completed_At": "",
+          "Role": "DECISION",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "Valuation_State_ID=FIGMA-VALUATION-20260917-B002; Constraint_State_ID=HP=3Y|MPL=-50%|MER=0%",
+          "Triggers_Found": "VALUATION_DEPENDENCY_CHANGED",
+          "Output_ID": "FIGMA-DECISION-20260917-B002",
+          "Handoff_Route": "NEXT=STOP",
+          "Error_or_Note": "Action=WAIT | Constraint_State_ID=HP=3Y|MPL=-50%|MER=0% | Decision_Boundary=WAIT: BUY requires a refreshed Valuation with EDGE_OPEN and stronger stress support; hard PASS threshold under unchanged Value is Price > $23.66 where Bear loss breaches -50%."
+        },
+        {
+          "Run_ID": "20260917T0900JST-MONITOR-FIGMA",
+          "Scheduled_Date": "2026-09-17",
+          "Started_At": "2026-09-17T09:00:01+09:00",
+          "Completed_At": "2026-09-17T09:02:17+09:00",
+          "Role": "MONITOR",
+          "Status": "BLOCKED",
+          "Input_Checkpoint": "20260916T2034JST-MONITOR-FIGMA",
+          "Triggers_Found": "UNKNOWN",
+          "Output_ID": "",
+          "Handoff_Route": "NEXT=BLOCKED",
+          "Error_or_Note": "MONITOR_BLOCKED — official dynamic announcement/filing lists returned page shell without dated entries; web search and Bigdata backup returned no usable incremental evidence. Cannot reliably verify interval after 2026-09-16T20:34:00+09:00. Successful checkpoint NOT advanced; REVISER/VALUATOR/DECISION suspended, prior state retained, not validated as current. Sources: https://investor.figma.com/news-events/news/default.aspx ; https://investor.figma.com/financials/sec-filings/default.aspx"
+        },
+        {
+          "Run_ID": "20260917T2142JST-REVISER-FIGMA-LBCM",
+          "Scheduled_Date": "2026-09-17",
+          "Started_At": "2026-09-17T21:42:33+09:00",
+          "Completed_At": "2026-09-17T21:42:33+09:00",
+          "Role": "REVISER",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "Belief_State_ID=FIGMA-BELIEF-20260916-B001; Base_Source=102C8uCTHUIHb97LpqpgZIqsFqR2RF3xx; Commitment=MIGRATION_UNKNOWN",
+          "Triggers_Found": "LEGACY_BELIEF_COMPLETENESS_MIGRATION",
+          "Output_ID": "FIGMA-BELIEF-20260916-B001",
+          "Handoff_Route": "NEXT=VALUATOR",
+          "Error_or_Note": "STATE_ACTION=MAINTAIN. Accepted baseline supports no separate attributable material capital commitment for AI/Make; recurring AI/hosting cost remains Unit Economics and dilution uncertainty remains Capital Structure. Downstream execution remains subject to normal MONITOR gate."
+        },
+        {
+          "Run_ID": "20260917T2156JST-MONITOR-FIGMA-RECOVERY",
+          "Scheduled_Date": "2026-09-17",
+          "Started_At": "2026-09-17T21:50:00+09:00",
+          "Completed_At": "2026-09-17T21:56:19+09:00",
+          "Role": "MONITOR",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "20260916T2034JST-MONITOR-FIGMA",
+          "Triggers_Found": "0",
+          "Output_ID": "",
+          "Handoff_Route": "WORKFLOW/CACHE_CHECK",
+          "Error_or_Note": "REALITY_UNCHANGED — checked after successful checkpoint 2026-09-16T20:34:00+09:00 through 2026-09-17T21:56:19+09:00. Retrieval recovery: dynamic IR news/filing lists unreliable -> official Figma Release Notes / Blog / Newsroom static indexes + bounded SEC/Bigdata filings/news discovery -> DEGRADED_BUT_SUFFICIENT. Sep 16 Weave Community publishing update was reviewed; it is a product/community capability update and does not materially clarify paid AI/Make conversion or renewal, post-repricing ARR, AI unit economics, FCF/dilution, or capital commitment. No accepted Evidence registered."
+        },
+        {
+          "Run_ID": "FIGMA-RUN-VALUATOR-20260917-B003",
+          "Scheduled_Date": "2026-09-17",
+          "Started_At": "2026-09-17T21:59:40+09:00",
+          "Completed_At": "2026-09-17T21:59:40+09:00",
+          "Role": "VALUATOR",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "Belief_State_ID=FIGMA-BELIEF-20260916-B001; Commitment=NONE/RESOLVED_NONE; Price=$23.06; Prior_Valuation=FIGMA-VALUATION-20260917-B002",
+          "Triggers_Found": "DOWNSIDE_MAP_STATUS_MIGRATION_GAP_AFTER_BELIEF_COMPLETENESS_MIGRATION",
+          "Output_ID": "FIGMA-VALUATION-20260917-B003",
+          "Handoff_Route": "NEXT=DECISION",
+          "Error_or_Note": "Downside map COMPLETE. Revenue-duration failure maps to BEAR growth and AI/hosting/opex burden maps to BEAR FCF margin. Dilution remains UNRESOLVED_UNCERTAINTY because Belief provides no accepted numeric path; no primary Bear deduction is invented, while +10% dilution remains explicit stress only. Capital commitment NONE. Bridge REPRODUCIBLE; DOUBLE_COUNT_CHECK=PASS."
+        },
+        {
+          "Run_ID": "FIGMA-RUN-DECISION-20260917-B003",
+          "Scheduled_Date": "2026-09-17",
+          "Started_At": "2026-09-17T21:59:40+09:00",
+          "Completed_At": "2026-09-17T21:59:40+09:00",
+          "Role": "DECISION",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "Valuation_State_ID=FIGMA-VALUATION-20260917-B003; Constraint_State_ID=HP=3Y|MPL=-50%|MER=0%; Price=$23.06",
+          "Triggers_Found": "VALUATION_DEPENDENCY_CHANGED",
+          "Output_ID": "FIGMA-DECISION-20260917-B003",
+          "Handoff_Route": "NEXT=STOP",
+          "Error_or_Note": "Action=WAIT. Bear -48.7%; expected -2.6%; 22x +10% dilution stress -27.9%; PRICED_IN; Downside_Map_Status=COMPLETE. Hard PASS threshold remains $23.66 under unchanged Value/constraints."
+        },
+        {
+          "Run_ID": "20260918T0857JST-MONITOR-FIGMA",
+          "Scheduled_Date": "2026-09-18",
+          "Started_At": "2026-09-18T08:57:19+09:00",
+          "Completed_At": "2026-09-18T08:59:30+09:00",
+          "Role": "MONITOR",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "20260917T2156JST-MONITOR-FIGMA-RECOVERY",
+          "Triggers_Found": "0",
+          "Output_ID": "",
+          "Handoff_Route": "WORKFLOW/CACHE_CHECK",
+          "Error_or_Note": "REALITY_UNCHANGED — checked after successful checkpoint 2026-09-17T21:56:19+09:00 through 2026-09-18T08:59:30+09:00. Retrieval recovery: dynamic IR listing shell -> official Release Notes static page + bounded SEC/Bigdata/news discovery -> DEGRADED_BUT_SUFFICIENT. Sep 17 Weave/Figma Design workflow release was reviewed; it adds product capability but does not materially establish paid conversion/renewal, post-repricing ARR, AI unit economics, FCF/dilution, or capital commitment. No accepted Evidence registered."
+        },
+        {
+          "Run_ID": "20260919T0857JST-MONITOR-FIGMA",
+          "Scheduled_Date": "2026-09-19",
+          "Started_At": "2026-09-19T08:57:12+09:00",
+          "Completed_At": "2026-09-19T09:01:30+09:00",
+          "Role": "MONITOR",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "20260918T0857JST-MONITOR-FIGMA",
+          "Triggers_Found": "0",
+          "Output_ID": "",
+          "Handoff_Route": "WORKFLOW/CACHE_CHECK",
+          "Error_or_Note": "REALITY_UNCHANGED — checked after successful checkpoint 2026-09-18T08:59:30+09:00 through 2026-09-19T09:01:30+09:00. Retrieval recovery: dynamic IR listings incomplete -> official Release Notes static page + bounded SEC/Bigdata/news discovery -> DEGRADED_BUT_SUFFICIENT. No release after the Sep 17 Weave/Figma Design update and no new fact materially establishing paid conversion/renewal, post-repricing ARR, AI unit economics, FCF/dilution, or capital commitment. No accepted Evidence registered. Market snapshot $22.69 at 2026-09-18 close is inside Valuation and Decision cache intervals."
+        },
+        {
+          "Run_ID": "20260920T1132JST-MONITOR-FIGMA",
+          "Scheduled_Date": "2026-09-20",
+          "Started_At": "2026-09-20T11:32:25+09:00",
+          "Completed_At": "2026-09-20T11:36:30+09:00",
+          "Role": "MONITOR",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "20260919T0857JST-MONITOR-FIGMA",
+          "Triggers_Found": "0",
+          "Output_ID": "",
+          "Handoff_Route": "WORKFLOW/CACHE_CHECK",
+          "Error_or_Note": "REALITY_UNCHANGED — checked after successful checkpoint 2026-09-19T09:01:30+09:00 through 2026-09-20T11:36:30+09:00. Retrieval recovery: dynamic IR listings incomplete -> official Release Notes static page + bounded filings/news discovery -> DEGRADED_BUT_SUFFICIENT. No release after the Sep 17 Weave/Figma Design update and no new fact materially establishing paid conversion/renewal, post-repricing ARR, AI unit economics, FCF/dilution, or capital commitment. No accepted Evidence registered. Weekend market snapshot remains $22.69 at 2026-09-18 close; inside Valuation and Decision cache intervals. Persistent Data Gate=ALLOW; source instance FIGMA."
+        },
+        {
+          "Run_ID": "20260921T1130JST-MONITOR-FIGMA",
+          "Scheduled_Date": "2026-09-21",
+          "Started_At": "2026-09-21T11:30:40+09:00",
+          "Completed_At": "2026-09-21T11:35:30+09:00",
+          "Role": "MONITOR",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "20260920T1132JST-MONITOR-FIGMA",
+          "Triggers_Found": "0",
+          "Output_ID": "",
+          "Handoff_Route": "WORKFLOW/CACHE_CHECK",
+          "Error_or_Note": "REALITY_UNCHANGED — checked after successful checkpoint 2026-09-20T11:36:30+09:00 through 2026-09-21T11:35:30+09:00. Official Release Notes still show Sep 17 Weave/Figma Design as the latest release; bounded filings/news discovery found no new fact materially establishing paid conversion/renewal, post-repricing ARR, AI unit economics, FCF/dilution, or capital commitment. No accepted Evidence registered. Latest regular-market snapshot remains $22.69 at 2026-09-18 close; inside Valuation and Decision cache intervals. Persistent Data Gate Epoch 2=ALLOW; source instance FIGMA."
+        },
+        {
+          "Run_ID": "20260922T1133JST-MONITOR-FIGMA",
+          "Scheduled_Date": "2026-09-22",
+          "Started_At": "2026-09-22T11:33:03+09:00",
+          "Completed_At": "2026-09-22T11:40:30+09:00",
+          "Role": "MONITOR",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "20260921T1130JST-MONITOR-FIGMA",
+          "Triggers_Found": "0",
+          "Output_ID": "",
+          "Handoff_Route": "WORKFLOW/CACHE_CHECK",
+          "Error_or_Note": "REALITY_UNCHANGED — checked after successful checkpoint 2026-09-21T11:35:30+09:00 through 2026-09-22T11:40:30+09:00. Retrieval recovery: dynamic IR/release representation incomplete -> official investor news + bounded SEC/Bigdata discovery -> DEGRADED_BUT_SUFFICIENT. No new fact materially establishing paid AI/Make conversion or renewal, post-repricing ARR, AI unit economics, FCF/dilution, or capital commitment. No accepted Evidence registered. Sep 21 close $22.33 crossed the cached Valuation lower boundary 22.46018933; routed to VALUATOR. Persistent Data Gate Epoch 4=ALLOW; source instance FIGMA."
+        },
+        {
+          "Run_ID": "FIGMA-RUN-VALUATOR-20260922-B004",
+          "Scheduled_Date": "2026-09-22",
+          "Started_At": "2026-09-22T11:40:30+09:00",
+          "Completed_At": "2026-09-22T11:40:30+09:00",
+          "Role": "VALUATOR",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "Belief_State_ID=FIGMA-BELIEF-20260916-B001; Price=$22.33; Prior_Valuation=FIGMA-VALUATION-20260917-B003",
+          "Triggers_Found": "PRICE_OUTSIDE_EFFECTIVE_ENVELOPE",
+          "Output_ID": "FIGMA-VALUATION-20260922-B004",
+          "Handoff_Route": "NEXT=DECISION",
+          "Error_or_Note": "Expected payoff +0.6%; stress -25.5%; EDGE_THIN. Effective price envelope $20.097 to $22.46018933. Bridge REPRODUCIBLE; downside map COMPLETE; DOUBLE_COUNT_CHECK=PASS."
+        },
+        {
+          "Run_ID": "FIGMA-RUN-DECISION-20260922-B004",
+          "Scheduled_Date": "2026-09-22",
+          "Started_At": "2026-09-22T11:40:30+09:00",
+          "Completed_At": "2026-09-22T11:40:30+09:00",
+          "Role": "DECISION",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "Valuation_State_ID=FIGMA-VALUATION-20260922-B004; Constraint_State_ID=HP=3Y|MPL=-50%|MER=0%; Price=$22.33",
+          "Triggers_Found": "VALUATION_DEPENDENCY_CHANGED",
+          "Output_ID": "FIGMA-DECISION-20260922-B004",
+          "Handoff_Route": "NEXT=STOP",
+          "Error_or_Note": "Action=WAIT | Constraint_State_ID=HP=3Y|MPL=-50%|MER=0% | Decision_Boundary=WAIT: BUY requires a refreshed Valuation with EDGE_OPEN and stronger stress support; hard PASS threshold under unchanged Value is Price > $23.66 where Bear loss breaches -50%."
+        },
+        {
+          "Run_ID": "20260923T1132JST-MONITOR-FIGMA",
+          "Scheduled_Date": "2026-09-23",
+          "Started_At": "2026-09-23T11:32:46+09:00",
+          "Completed_At": "2026-09-23T11:39:30+09:00",
+          "Role": "MONITOR",
+          "Status": "SUCCESS",
+          "Input_Checkpoint": "20260922T1133JST-MONITOR-FIGMA",
+          "Triggers_Found": "0",
+          "Output_ID": "",
+          "Handoff_Route": "WORKFLOW/CACHE_CHECK",
+          "Error_or_Note": "REALITY_UNCHANGED — checked after successful checkpoint 2026-09-22T11:40:30+09:00 through 2026-09-23T11:39:30+09:00. Retrieval recovery: dynamic IR/release representation incomplete -> official investor news + bounded SEC/Bigdata discovery -> DEGRADED_BUT_SUFFICIENT. New coverage was industry pricing or valuation commentary and did not materially establish paid AI/Make conversion or renewal, post-repricing ARR, AI unit economics, FCF/dilution, or capital commitment. No accepted Evidence registered. Sep 22 regular-market close $21.80 is inside Valuation envelope $20.097–$22.46018933 and Decision interval. Persistent Data Gate Epoch 4=ALLOW; source instance FIGMA."
+        }
+      ]
     }
   ],
   "continuity": {
@@ -2943,6 +4002,9 @@
       },
       "SERVICENOW": {
         "latest_successful_monitor_run_id": "20260923T1132JST-MONITOR-SERVICENOW"
+      },
+      "FIGMA": {
+        "latest_successful_monitor_run_id": "20260923T1132JST-MONITOR-FIGMA"
       }
     }
   }
