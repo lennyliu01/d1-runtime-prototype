@@ -17,7 +17,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
       CANDIDATE_URL: http://127.0.0.1:8787
-      REMOTE_CANDIDATE_URL: https://workos-d1-runtime.lennyliu01.workers.dev
+      REMOTE_CANDIDATE_URL: https://d1-runtime-prototype.lennyliu01.workers.dev
       LOCAL_STATE: .step4-wrangler-state
       REMOTE_WITNESS_RUN: REMOTEWITNESS-${{ github.run_id }}
     steps:
@@ -353,49 +353,11 @@ jobs:
           test "$APPEND_COUNT" -eq 0
           test "$CURRENT_COUNT" -eq 0
 
-      - name: Ensure canonical WorkOS D1 Worker resource exists
+      - name: Deploy candidate code to existing non-authoritative Worker
         shell: bash
         run: |
           set -euo pipefail
-
-          GET_FILE="$(mktemp)"
-          GET_CODE="$(curl -sS -o "$GET_FILE" -w '%{http_code}' \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/workos-d1-runtime" \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")"
-
-          if [ "$GET_CODE" = "200" ]; then
-            echo "REMOTE_WORKER_RESOURCE=EXISTING"
-          else
-            META_FILE="$(mktemp)"
-            MODULE_FILE="$(mktemp --suffix=.js)"
-            printf '%s\n' '{"main_module":"worker.js","compatibility_date":"2026-09-22"}' > "$META_FILE"
-            printf '%s\n' 'export default { async fetch() { return new Response("workos-d1-runtime candidate draft"); } };' > "$MODULE_FILE"
-
-            PUT_FILE="$(mktemp)"
-            PUT_CODE="$(curl -sS -o "$PUT_FILE" -w '%{http_code}' \
-              -X PUT \
-              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/workos-d1-runtime" \
-              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-              -F "metadata=@$META_FILE;type=application/json" \
-              -F "worker.js=@$MODULE_FILE;type=application/javascript+module")"
-            echo "REMOTE_WORKER_CREATE_HTTP=$PUT_CODE"
-            if [ "$PUT_CODE" != "200" ]; then
-              jq -c '{success,errors,messages}' "$PUT_FILE" || cat "$PUT_FILE"
-              exit 62
-            fi
-            jq -e '.success == true and .result.id == "workos-d1-runtime"' "$PUT_FILE" >/dev/null
-            echo "REMOTE_WORKER_RESOURCE=CREATED"
-          fi
-
-      - name: Deploy canonical non-authoritative WorkOS D1 Worker
-        shell: bash
-        run: |
-          set -euo pipefail
-          SECRETS_FILE="$(mktemp)"
-          chmod 600 "$SECRETS_FILE"
-          printf 'RUNTIME_SECRET=%s\n' "$RUNTIME_SECRET" > "$SECRETS_FILE"
-          npx wrangler deploy --secrets-file "$SECRETS_FILE"
-          rm -f "$SECRETS_FILE"
+          npx wrangler deploy
           echo "REMOTE_WORKER_DEPLOYED=TRUE"
 
       - name: Run remote Worker witness
