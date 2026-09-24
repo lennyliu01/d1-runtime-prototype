@@ -1,3 +1,5 @@
+import { handleWorkOsCandidatePersistence } from "./workos_candidate";
+
 type ExecutionSurface = "CHAT" | "WORK";
 type TriggerMode = "HUMAN" | "SCHEDULE";
 
@@ -687,6 +689,10 @@ export default {
 
     if (request.method === "POST" && url.pathname === "/prototype/state-cas") {
       return handleStateCompareAndSet(request, env);
+    }
+
+    if (request.method === "POST" && url.pathname === "/candidate/workos-persistence") {
+      return handleWorkOsCandidatePersistence(request, env);
     }
 
     return Response.json(
