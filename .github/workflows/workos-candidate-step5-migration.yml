@@ -1,0 +1,240 @@
+name: WorkOS D1 Candidate Step 5 Migration
+
+on:
+  push:
+    branches:
+      - workos-d1-candidate
+    paths:
+      - '.github/workflows/workos-candidate-step5-migration.yml'
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SNAPSHOT_FILE: .step5/step5-source-snapshot-20260924.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: workos-d1-candidate
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Verify migration input and credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -s "$SNAPSHOT_FILE"
+          node -e '
+            const s=require("./"+process.env.SNAPSHOT_FILE);
+            if(s.snapshot_id!=="STEP5-20260924-FRESH-A") process.exit(2);
+            if(s.status!=="NON_AUTHORITATIVE_PRE_T0_MIGRATION_INPUT") process.exit(3);
+            if(s.datasets.length!==19) process.exit(4);
+            console.log("SNAPSHOT_ID="+s.snapshot_id);
+            console.log("SNAPSHOT_DATASET_INSTANCES="+s.datasets.length);
+          '
+
+      - name: Require empty remote candidate tables
+        shell: bash
+        run: |
+          set -euo pipefail
+          APPEND_COUNT="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_append_records;" --json | jq -r '.[0].results[0].c')"
+          CURRENT_COUNT="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_current_state_versions;" --json | jq -r '.[0].results[0].c')"
+          echo "PRECOPY_APPEND_ROWS=$APPEND_COUNT"
+          echo "PRECOPY_CURRENT_STATE_VERSIONS=$CURRENT_COUNT"
+          test "$APPEND_COUNT" -eq 0
+          test "$CURRENT_COUNT" -eq 0
+
+      - name: Generate bounded one-time copy SQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require("fs");
+          const s=JSON.parse(fs.readFileSync(process.env.SNAPSHOT_FILE,"utf8"));
+          const q=(v)=>"'" + String(v).replaceAll("'","''") + "'";
+          const sql=[];
+          for(const d of s.datasets){
+            if(d.write_mode==="APPEND_ONLY"){
+              for(const record of d.records){
+                const key=String(record[d.record_key_field]);
+                const identity=["MIG",s.snapshot_id,d.dataset_id,d.instance_id,key].join(":");
+                sql.push(
+                  "INSERT INTO workos_append_records "+
+                  "(dataset_id,instance_id,record_key,payload_json,invocation_id,idempotency_key,db_written_at) VALUES ("+
+                  [d.dataset_id,d.instance_id,key,JSON.stringify(record),identity,identity].map(q).join(",")+
+                  ",strftime('%Y-%m-%dT%H:%M:%fZ','now'));"
+                );
+              }
+            } else if(d.write_mode==="CURRENT_STATE"){
+              const identity=["MIG",s.snapshot_id,d.dataset_id,d.instance_id,"V1"].join(":");
+              sql.push(
+                "INSERT INTO workos_current_state_versions "+
+                "(dataset_id,instance_id,version,previous_version,payload_json,invocation_id,idempotency_key,db_written_at) VALUES ("+
+                [d.dataset_id,d.instance_id].map(q).join(",")+
+                ",1,0,"+
+                [JSON.stringify(d.payload),identity,identity].map(q).join(",")+
+                ",strftime('%Y-%m-%dT%H:%M:%fZ','now'));"
+              );
+            } else {
+              throw new Error("Unknown write mode "+d.write_mode);
+            }
+          }
+          fs.writeFileSync("/tmp/step5-copy.sql",sql.join("\n")+"\n");
+          console.log("SQL_STATEMENTS="+sql.length);
+          NODE
+          test "$(grep -c '^INSERT INTO ' /tmp/step5-copy.sql)" -eq 128
+
+      - name: Copy frozen source snapshot into candidate D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          touch /tmp/step5-migration-started
+          npx wrangler d1 execute d1-runtime-prototype-db --remote --file /tmp/step5-copy.sql
+
+      - name: Read back candidate D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT append_seq,dataset_id,instance_id,record_key,payload_json FROM workos_append_records ORDER BY append_seq;" --json > /tmp/step5-append.json
+          npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT dataset_id,instance_id,version,previous_version,payload_json FROM workos_current_state_versions ORDER BY dataset_id,instance_id,version;" --json > /tmp/step5-current.json
+
+      - name: Reconcile counts identities payloads and checkpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require("fs");
+          const s=JSON.parse(fs.readFileSync(process.env.SNAPSHOT_FILE,"utf8"));
+          const unwrap=(path)=>{
+            const raw=JSON.parse(fs.readFileSync(path,"utf8"));
+            if(!Array.isArray(raw)||!raw[0]||!Array.isArray(raw[0].results)) throw new Error("Unexpected wrangler JSON "+path);
+            return raw[0].results;
+          };
+          const append=unwrap("/tmp/step5-append.json");
+          const current=unwrap("/tmp/step5-current.json");
+
+          const expectedAppend=[];
+          const expectedCurrent=[];
+          for(const d of s.datasets){
+            if(d.write_mode==="APPEND_ONLY"){
+              for(const record of d.records){
+                expectedAppend.push({
+                  dataset_id:d.dataset_id,
+                  instance_id:d.instance_id,
+                  record_key:String(record[d.record_key_field]),
+                  payload:record
+                });
+              }
+            } else {
+              expectedCurrent.push({
+                dataset_id:d.dataset_id,
+                instance_id:d.instance_id,
+                version:1,
+                previous_version:0,
+                payload:d.payload
+              });
+            }
+          }
+
+          if(append.length!==expectedAppend.length) throw new Error("Append total mismatch "+append.length+" != "+expectedAppend.length);
+          if(current.length!==expectedCurrent.length) throw new Error("Current total mismatch "+current.length+" != "+expectedCurrent.length);
+
+          const akey=(x)=>[x.dataset_id,x.instance_id,x.record_key].join("|");
+          const amap=new Map(append.map(x=>[akey(x),x]));
+          if(amap.size!==append.length) throw new Error("Duplicate actual append identity");
+          for(const e of expectedAppend){
+            const a=amap.get(akey(e));
+            if(!a) throw new Error("Missing append identity "+akey(e));
+            const p=JSON.parse(a.payload_json);
+            if(JSON.stringify(p)!==JSON.stringify(e.payload)) throw new Error("Append payload mismatch "+akey(e));
+          }
+
+          const ckey=(x)=>[x.dataset_id,x.instance_id,x.version].join("|");
+          const cmap=new Map(current.map(x=>[ckey(x),x]));
+          for(const e of expectedCurrent){
+            const a=cmap.get(ckey(e));
+            if(!a) throw new Error("Missing current state "+ckey(e));
+            if(Number(a.previous_version)!==0) throw new Error("Current previous_version mismatch "+ckey(e));
+            const p=JSON.parse(a.payload_json);
+            if(JSON.stringify(p)!==JSON.stringify(e.payload)) throw new Error("Current payload mismatch "+ckey(e));
+          }
+
+          const grouped=new Map();
+          for(const a of append){
+            const k=[a.dataset_id,a.instance_id].join("|");
+            if(!grouped.has(k)) grouped.set(k,[]);
+            grouped.get(k).push(a);
+          }
+
+          for(const d of s.datasets.filter(x=>x.write_mode==="APPEND_ONLY")){
+            const k=[d.dataset_id,d.instance_id].join("|");
+            const actual=(grouped.get(k)||[]);
+            if(actual.length!==d.record_count) throw new Error("Dataset count mismatch "+k+" "+actual.length+" != "+d.record_count);
+          }
+
+          const fxRuns=grouped.get("FX_POLICY_RUN_LOG|SINGLETON")||[];
+          if(!fxRuns.length||fxRuns.at(-1).record_key!==s.continuity.fx.latest_collector_run_id){
+            throw new Error("FX collector checkpoint mismatch");
+          }
+          const fxAnalyses=grouped.get("FX_POLICY_ANALYSIS_STATE|SINGLETON")||[];
+          if(!fxAnalyses.length) throw new Error("Missing FX analysis");
+          const latestAnalysis=JSON.parse(fxAnalyses.at(-1).payload_json);
+          if(String(latestAnalysis.Last_Collector_Run_ID_Reviewed)!==s.continuity.fx.last_collector_run_id_reviewed){
+            throw new Error("FX reader checkpoint mismatch");
+          }
+
+          for(const company of s.active_instances){
+            const rows=(grouped.get("RW_RUN_LOG|"+company)||[]);
+            const monitors=rows.filter(x=>{
+              const p=JSON.parse(x.payload_json);
+              return String(p.Role)==="MONITOR"&&String(p.Status)==="SUCCESS";
+            });
+            if(!monitors.length) throw new Error("No D1 monitor checkpoint "+company);
+            const actual=monitors.at(-1).record_key;
+            const expected=s.continuity.rolling_wedge[company].latest_successful_monitor_run_id;
+            if(actual!==expected) throw new Error("RW checkpoint mismatch "+company+" "+actual+" != "+expected);
+          }
+
+          const counts={};
+          for(const d of s.datasets){
+            const k=d.dataset_id+"|"+d.instance_id;
+            counts[k]=d.write_mode==="CURRENT_STATE"?1:d.record_count;
+          }
+          console.log("STEP5_RECONCILIATION=PASS");
+          console.log("APPEND_ROWS="+append.length);
+          console.log("CURRENT_STATE_VERSIONS="+current.length);
+          console.log("FX_COLLECTOR_CHECKPOINT="+s.continuity.fx.latest_collector_run_id);
+          console.log("FX_READER_CHECKPOINT="+s.continuity.fx.last_collector_run_id_reviewed);
+          for(const company of s.active_instances){
+            console.log("RW_MONITOR_CHECKPOINT_"+company+"="+s.continuity.rolling_wedge[company].latest_successful_monitor_run_id);
+          }
+          console.log("DATASET_COUNTS="+JSON.stringify(counts));
+          NODE
+
+      - name: Cleanup failed migration attempt
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/step5-migration-started ]; then
+            npx wrangler d1 execute d1-runtime-prototype-db --remote --command "DELETE FROM workos_append_records; DELETE FROM workos_current_state_versions;"
+            APPEND_COUNT="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_append_records;" --json | jq -r '.[0].results[0].c')"
+            CURRENT_COUNT="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_current_state_versions;" --json | jq -r '.[0].results[0].c')"
+            echo "FAILED_MIGRATION_CLEANUP_APPEND_ROWS=$APPEND_COUNT"
+            echo "FAILED_MIGRATION_CLEANUP_CURRENT_ROWS=$CURRENT_COUNT"
+            test "$APPEND_COUNT" -eq 0
+            test "$CURRENT_COUNT" -eq 0
+          else
+            echo "MIGRATION_NOT_STARTED_NO_CLEANUP"
+          fi
