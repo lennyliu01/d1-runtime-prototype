@@ -9,7 +9,9 @@ jobs:
   invoke:
     if: >-
       github.event.issue.title == '[RUNTIME_INVOCATION] TIME_ROUNDTRIP' ||
-      github.event.issue.title == '[RUNTIME_INVOCATION] STATE_COMPARE_AND_SET'
+      github.event.issue.title == '[RUNTIME_INVOCATION] STATE_COMPARE_AND_SET' ||
+      github.event.issue.title == '[RUNTIME_INVOCATION] READ' ||
+      github.event.issue.title == '[RUNTIME_INVOCATION] WRITE'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -115,6 +117,114 @@ jobs:
             fi
 
             ENDPOINT="https://d1-runtime-prototype.lennyliu01.workers.dev/prototype/state-cas"
+
+          elif [ "$OPERATION" = "READ" ] || [ "$OPERATION" = "WRITE" ]; then
+            test "$TITLE" = "[RUNTIME_INVOCATION] $OPERATION"
+
+            TASK_ID="$(printf '%s\n' "$BODY" | awk -F': ' '/^Task_ID: / {print $2; exit}')"
+            CALLER_IDENTITY="$(printf '%s\n' "$BODY" | awk -F': ' '/^Caller_Identity: / {print $2; exit}')"
+            DATASET_ID="$(printf '%s\n' "$BODY" | awk -F': ' '/^Dataset_ID: / {print $2; exit}')"
+            INSTANCE_ID="$(printf '%s\n' "$BODY" | awk -F': ' '/^Instance_ID: / {print $2; exit}')"
+
+            [[ "$TASK_ID" =~ ^[A-Za-z0-9._:-]{1,128}$ ]] || { echo "Invalid Task_ID"; exit 33; }
+            [[ "$CALLER_IDENTITY" =~ ^[A-Za-z0-9._:-]{1,128}$ ]] || { echo "Invalid Caller_Identity"; exit 34; }
+            [[ "$DATASET_ID" =~ ^[A-Za-z0-9._:-]{1,128}$ ]] || { echo "Invalid Dataset_ID"; exit 35; }
+            [[ "$INSTANCE_ID" =~ ^[A-Za-z0-9._:-]{1,128}$ ]] || { echo "Invalid Instance_ID"; exit 36; }
+
+            if [ "$OPERATION" = "READ" ]; then
+              SELECTOR="$(printf '%s\n' "$BODY" | awk -F': ' '/^Selector: / {print $2; exit}')"
+              case "$SELECTOR" in
+                CURRENT)
+                  SELECTOR_JSON='{"kind":"CURRENT"}'
+                  ;;
+                RECORD)
+                  RECORD_KEY="$(printf '%s\n' "$BODY" | awk -F': ' '/^Record_Key: / {print $2; exit}')"
+                  [[ "$RECORD_KEY" =~ ^[A-Za-z0-9._:-]{1,256}$ ]] || { echo "Invalid Record_Key"; exit 37; }
+                  SELECTOR_JSON="$(jq -cn --arg key "$RECORD_KEY" '{kind:"RECORD",record_key:$key}')"
+                  ;;
+                AFTER)
+                  CHECKPOINT_RECORD_KEY="$(printf '%s\n' "$BODY" | awk -F': ' '/^Checkpoint_Record_Key: / {print $2; exit}')"
+                  LIMIT="$(printf '%s\n' "$BODY" | awk -F': ' '/^Limit: / {print $2; exit}')"
+                  [[ "$CHECKPOINT_RECORD_KEY" =~ ^[A-Za-z0-9._:-]{1,256}$ ]] || { echo "Invalid Checkpoint_Record_Key"; exit 38; }
+                  [[ "$LIMIT" =~ ^[1-9][0-9]?$|^100$ ]] || { echo "Invalid Limit"; exit 39; }
+                  SELECTOR_JSON="$(jq -cn --arg key "$CHECKPOINT_RECORD_KEY" --argjson limit "$LIMIT" '{kind:"AFTER",checkpoint_record_key:$key,limit:$limit}')"
+                  ;;
+                TAIL)
+                  LIMIT="$(printf '%s\n' "$BODY" | awk -F': ' '/^Limit: / {print $2; exit}')"
+                  [[ "$LIMIT" =~ ^[1-9][0-9]?$|^100$ ]] || { echo "Invalid Limit"; exit 40; }
+                  SELECTOR_JSON="$(jq -cn --argjson limit "$LIMIT" '{kind:"TAIL",limit:$limit}')"
+                  ;;
+                *)
+                  echo "Invalid Selector"
+                  exit 41
+                  ;;
+              esac
+
+              jq -n \
+                --arg surface "$EXECUTION_SURFACE" \
+                --arg trigger "$TRIGGER_MODE" \
+                --arg task "$TASK_ID" \
+                --arg caller "$CALLER_IDENTITY" \
+                --arg dataset "$DATASET_ID" \
+                --arg instance "$INSTANCE_ID" \
+                --argjson selector "$SELECTOR_JSON" \
+                '{
+                  execution_surface: $surface,
+                  trigger_mode: $trigger,
+                  task_id: $task,
+                  caller_identity: $caller,
+                  operation: "READ",
+                  dataset_id: $dataset,
+                  instance_id: $instance,
+                  selector: $selector
+                }' > "$REQUEST_FILE"
+
+            else
+              IDEMPOTENCY_KEY="$(printf '%s\n' "$BODY" | awk -F': ' '/^Idempotency_Key: / {print $2; exit}')"
+              PAYLOAD_JSON="$(printf '%s\n' "$BODY" | sed -n 's/^Payload_JSON: //p' | head -n 1)"
+              RECORD_KEY="$(printf '%s\n' "$BODY" | awk -F': ' '/^Record_Key: / {print $2; exit}')"
+              EXPECTED_VERSION="$(printf '%s\n' "$BODY" | awk -F': ' '/^Expected_Version: / {print $2; exit}')"
+
+              [[ "$IDEMPOTENCY_KEY" =~ ^[A-Za-z0-9._:-]{1,128}$ ]] || { echo "Invalid Idempotency_Key"; exit 42; }
+              test -n "$PAYLOAD_JSON" || { echo "Missing Payload_JSON"; exit 43; }
+              printf '%s' "$PAYLOAD_JSON" | jq -e . >/dev/null || { echo "Invalid Payload_JSON"; exit 44; }
+
+              jq -n \
+                --arg surface "$EXECUTION_SURFACE" \
+                --arg trigger "$TRIGGER_MODE" \
+                --arg task "$TASK_ID" \
+                --arg caller "$CALLER_IDENTITY" \
+                --arg dataset "$DATASET_ID" \
+                --arg instance "$INSTANCE_ID" \
+                --arg idempotency "$IDEMPOTENCY_KEY" \
+                --argjson payload "$PAYLOAD_JSON" \
+                '{
+                  execution_surface: $surface,
+                  trigger_mode: $trigger,
+                  task_id: $task,
+                  caller_identity: $caller,
+                  operation: "WRITE",
+                  dataset_id: $dataset,
+                  instance_id: $instance,
+                  idempotency_key: $idempotency,
+                  payload: $payload
+                }' > "$REQUEST_FILE"
+
+              if [ -n "$RECORD_KEY" ]; then
+                [[ "$RECORD_KEY" =~ ^[A-Za-z0-9._:-]{1,256}$ ]] || { echo "Invalid Record_Key"; exit 45; }
+                jq --arg key "$RECORD_KEY" '. + {record_key:$key}' "$REQUEST_FILE" > "$REQUEST_FILE.tmp"
+                mv "$REQUEST_FILE.tmp" "$REQUEST_FILE"
+              fi
+
+              if [ -n "$EXPECTED_VERSION" ]; then
+                [[ "$EXPECTED_VERSION" =~ ^(0|[1-9][0-9]*)$ ]] || { echo "Invalid Expected_Version"; exit 46; }
+                test "$EXPECTED_VERSION" -le 2147483647 || { echo "Expected_Version too large"; exit 47; }
+                jq --argjson version "$EXPECTED_VERSION" '. + {expected_version:$version}' "$REQUEST_FILE" > "$REQUEST_FILE.tmp"
+                mv "$REQUEST_FILE.tmp" "$REQUEST_FILE"
+              fi
+            fi
+
+            ENDPOINT="https://d1-runtime-prototype.lennyliu01.workers.dev/candidate/workos-persistence"
           else
             echo "Invalid Operation"
             exit 31
@@ -145,6 +255,21 @@ jobs:
                 (.db_written_at | type == "string" and length > 0) and
                 (.db_read_at | type == "string" and length > 0)
               ' >/dev/null
+          elif [ "$OPERATION" = "READ" ] || [ "$OPERATION" = "WRITE" ]; then
+            case "$HTTP_CODE" in
+              200)
+                echo "$RESPONSE" | jq -e --arg operation "$OPERATION" '
+                  .status == "SUCCESS" and .operation == $operation
+                ' >/dev/null
+                ;;
+              403|404|409)
+                echo "$RESPONSE" | jq -e '.status == "FAILED" and (.error | type == "string" and length > 0)' >/dev/null
+                ;;
+              *)
+                echo "Unexpected WorkOS candidate HTTP status: $HTTP_CODE"
+                exit 48
+                ;;
+            esac
           else
             if [ "$HTTP_CODE" = "200" ]; then
               echo "$RESPONSE" | jq -e \
@@ -196,6 +321,7 @@ jobs:
           echo "current_version=$(echo "$RESPONSE" | jq -r '.current_version // ""')" >> "$GITHUB_OUTPUT"
           echo "current_state=$(echo "$RESPONSE" | jq -r 'if has("current_state") then (.current_state|tostring) else "" end')" >> "$GITHUB_OUTPUT"
           echo "source_run_key=$SOURCE_RUN_KEY" >> "$GITHUB_OUTPUT"
+          echo "runtime_response=$(echo "$RESPONSE" | jq -c .)" >> "$GITHUB_OUTPUT"
 
       - name: Return terminal runtime result to exact issue
         if: success()
@@ -223,8 +349,20 @@ jobs:
           CURRENT_VERSION: ${{ steps.runtime.outputs.current_version }}
           CURRENT_STATE: ${{ steps.runtime.outputs.current_state }}
           SOURCE_RUN_KEY: ${{ steps.runtime.outputs.source_run_key }}
+          RUNTIME_RESPONSE: ${{ steps.runtime.outputs.runtime_response }}
         run: |
-          if [ "$OPERATION" = "TIME_ROUNDTRIP" ]; then
+          if [ "$OPERATION" = "READ" ] || [ "$OPERATION" = "WRITE" ]; then
+            gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "RUNTIME_INVOCATION_RESULT
+            Status: $RUNTIME_STATUS
+            HTTP: $HTTP_CODE
+            Execution_Surface: $EXECUTION_SURFACE
+            Trigger_Mode: $TRIGGER_MODE
+            Operation: $OPERATION
+            Runtime_Result_JSON: $RUNTIME_RESPONSE
+            Source_Run_Key: $SOURCE_RUN_KEY
+            Return_Target: CALLER
+            Transport: GITHUB_ACTIONS"
+          elif [ "$OPERATION" = "TIME_ROUNDTRIP" ]; then
             gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "RUNTIME_INVOCATION_RESULT
             Invocation_ID: $INVOCATION_ID
             Status: $RUNTIME_STATUS
