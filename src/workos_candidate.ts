@@ -114,8 +114,8 @@ const WORKOS_DATASETS: Record<string, DatasetControl> = {
     taskId: "US_JAPAN_FX_POLICY",
     writeMode: "APPEND_ONLY",
     instances: FX_SINGLETON,
-    writer: "FX_POLICY_COLLECTOR",
-    readers: new Set(["FX_POLICY_COLLECTOR", "FX_POLICY_READER"]),
+    writers: new Set(["FX_POLICY_COLLECTOR_HARNESS_V1"]),
+    readers: new Set(["FX_POLICY_COLLECTOR_HARNESS_V1", "FX_POLICY_READER_HARNESS_V1"]),
     resourceBinding: "DB",
   },
   FX_POLICY_RUN_LOG: {
