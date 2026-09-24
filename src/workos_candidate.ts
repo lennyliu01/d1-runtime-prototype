@@ -276,10 +276,25 @@ function resolveControl(body: ReadRequest | WriteRequest): DatasetControl | Resp
   return control;
 }
 
+function canonicalizePayload(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonicalizePayload);
+  }
+  if (value !== null && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const canonical: Record<string, unknown> = {};
+    for (const key of Object.keys(record).sort()) {
+      canonical[key] = canonicalizePayload(record[key]);
+    }
+    return canonical;
+  }
+  return value;
+}
+
 function serializePayload(payload: unknown): string | null {
   if (payload === undefined) return null;
   try {
-    const result = JSON.stringify(payload);
+    const result = JSON.stringify(canonicalizePayload(payload));
     return result === undefined ? null : result;
   } catch {
     return null;
