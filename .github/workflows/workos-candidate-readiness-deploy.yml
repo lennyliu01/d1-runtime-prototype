@@ -31,10 +31,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          OUT="$(mktemp)"
-          CODE="$(curl -sS -o "$OUT" -w '%{http_code}' -X POST "$CANDIDATE_URL/candidate/workos-persistence" -H 'Content-Type: application/json' --data '{"operation":"READ"}')"
-          ERROR="$(jq -r '.error // ""' "$OUT" 2>/dev/null || true)"
-          echo "CANDIDATE_ROUTE_HTTP=$CODE"
-          echo "CANDIDATE_ROUTE_ERROR=$ERROR"
-          test "$CODE" = "401"
-          test "$ERROR" = "UNAUTHORIZED"
+          READY=0
+          for attempt in $(seq 1 15); do
+            OUT="$(mktemp)"
+            CODE="$(curl -sS -o "$OUT" -w '%{http_code}' -X POST "$CANDIDATE_URL/candidate/workos-persistence" -H 'Content-Type: application/json' --data '{"operation":"READ"}')"
+            ERROR="$(jq -r '.error // ""' "$OUT" 2>/dev/null || true)"
+            echo "CANDIDATE_ROUTE_ATTEMPT=$attempt HTTP=$CODE ERROR=$ERROR"
+            if [ "$CODE" = "401" ] && [ "$ERROR" = "UNAUTHORIZED" ]; then
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+          test "$READY" -eq 1
+          echo "CANDIDATE_ROUTE_READY=TRUE"
