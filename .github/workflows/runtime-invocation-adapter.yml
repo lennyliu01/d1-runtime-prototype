@@ -224,7 +224,7 @@ jobs:
               fi
             fi
 
-            ENDPOINT="https://d1-runtime-prototype.lennyliu01.workers.dev/candidate/workos-persistence"
+            ENDPOINT="https://workos-d1-runtime.lennyliu01.workers.dev/candidate/workos-persistence"
           else
             echo "Invalid Operation"
             exit 31
