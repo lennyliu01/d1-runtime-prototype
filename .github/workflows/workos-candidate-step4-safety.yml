@@ -87,7 +87,8 @@ jobs:
 
           unauth_file="$(mktemp)"
           unauth_code="$(curl -sS -o "$unauth_file" -w '%{http_code}'             -X POST "$CANDIDATE_URL/candidate/workos-persistence"             -H 'Content-Type: application/json'             --data '{"operation":"READ"}')"
-          echo "REMOTE_UNAUTH_CODE=$unauth_code"\n          test "$unauth_code" = "401"
+          echo "REMOTE_UNAUTH_CODE=$unauth_code"
+          test "$unauth_code" = "401"
           jq -e '.status=="FAILED" and .error=="UNAUTHORIZED"' "$unauth_file" >/dev/null
 
           denied='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"MONITOR","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":1}}'
@@ -116,7 +117,8 @@ jobs:
           overbroad='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"READER","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":101}}'
           overbroad_file="$(mktemp)"
           overbroad_code="$(post "$overbroad" "$overbroad_file")"
-          echo "REMOTE_OVERBROAD_CODE=$overbroad_code"\n          test "$overbroad_code" = "400"
+          echo "REMOTE_OVERBROAD_CODE=$overbroad_code"
+          test "$overbroad_code" = "400"
           jq -e '.status=="FAILED" and .error=="INVALID_REQUEST"' "$overbroad_file" >/dev/null
 
           run_id="STEP4-$(date +%s)-$RANDOM"
@@ -253,7 +255,8 @@ jobs:
           }')"
           stale_file="$(mktemp)"
           stale_code="$(post "$stale_req" "$stale_file")"
-          echo "REMOTE_STALE_CODE=$stale_code"\n          test "$stale_code" = "409"
+          echo "REMOTE_STALE_CODE=$stale_code"
+          test "$stale_code" = "409"
           jq -e '.status=="FAILED" and .error=="STALE_STATE"' "$stale_file" >/dev/null
 
           transition="$(jq -cn --arg idem "$cur_idem2" --argjson ev "$base_version" --arg marker "$run_id" '{
@@ -401,13 +404,15 @@ jobs:
           cross_task='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"MONITOR","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":1}}'
           cross_file="$(mktemp)"
           cross_code="$(post_remote "$cross_task" "$cross_file")"
-          echo "REMOTE_CROSS_CODE=$cross_code"\n          test "$cross_code" = "403"
+          echo "REMOTE_CROSS_CODE=$cross_code"
+          test "$cross_code" = "403"
           jq -e '.status=="FAILED" and .error=="READ_NOT_AUTHORIZED"' "$cross_file" >/dev/null
 
           legacy_read='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"FX_POLICY_READER_HARNESS_V1","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":1}}'
           legacy_read_file="$(mktemp)"
           legacy_read_code="$(post_remote "$legacy_read" "$legacy_read_file")"
-          echo "REMOTE_LEGACY_READ_CODE=$legacy_read_code"\n          test "$legacy_read_code" = "403"
+          echo "REMOTE_LEGACY_READ_CODE=$legacy_read_code"
+          test "$legacy_read_code" = "403"
           jq -e '.status=="FAILED" and .error=="READ_NOT_AUTHORIZED"' "$legacy_read_file" >/dev/null
 
           legacy_write="$(jq -cn --arg run "$REMOTE_WITNESS_RUN" '{
@@ -418,7 +423,8 @@ jobs:
           }')"
           legacy_write_file="$(mktemp)"
           legacy_write_code="$(post_remote "$legacy_write" "$legacy_write_file")"
-          echo "REMOTE_LEGACY_WRITE_CODE=$legacy_write_code"\n          test "$legacy_write_code" = "403"
+          echo "REMOTE_LEGACY_WRITE_CODE=$legacy_write_code"
+          test "$legacy_write_code" = "403"
           jq -e '.status=="FAILED" and .error=="WRITE_NOT_AUTHORIZED"' "$legacy_write_file" >/dev/null
 
           overbroad='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"READER","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":101}}'
@@ -437,13 +443,15 @@ jobs:
           }')"
           fx_file="$(mktemp)"
           fx_code="$(post_remote "$fx_write" "$fx_file")"
-          echo "REMOTE_FX_WRITE_CODE=$fx_code"\n          test "$fx_code" = "200"
+          echo "REMOTE_FX_WRITE_CODE=$fx_code"
+          test "$fx_code" = "200"
           jq -e '.status=="SUCCESS" and .caller_identity=="COLLECTOR" and .write_mode=="APPEND_ONLY" and .replayed==false and (.invocation_id|length>0) and (.db_read_at|length>0)' "$fx_file" >/dev/null
           fx_inv="$(jq -r '.invocation_id' "$fx_file")"
 
           fx_replay_file="$(mktemp)"
           fx_replay_code="$(post_remote "$fx_write" "$fx_replay_file")"
-          echo "REMOTE_FX_REPLAY_CODE=$fx_replay_code"\n          test "$fx_replay_code" = "200"
+          echo "REMOTE_FX_REPLAY_CODE=$fx_replay_code"
+          test "$fx_replay_code" = "200"
           jq -e --arg inv "$fx_inv" '.status=="SUCCESS" and .replayed==true and .invocation_id==$inv' "$fx_replay_file" >/dev/null
 
           fx_read="$(jq -cn --arg rk "$fx_key" '{
@@ -454,7 +462,8 @@ jobs:
           }')"
           fx_read_file="$(mktemp)"
           fx_read_code="$(post_remote "$fx_read" "$fx_read_file")"
-          echo "REMOTE_FX_READ_CODE=$fx_read_code"\n          test "$fx_read_code" = "200"
+          echo "REMOTE_FX_READ_CODE=$fx_read_code"
+          test "$fx_read_code" = "200"
           jq -e --arg inv "$fx_inv" '.status=="SUCCESS" and .caller_identity=="READER" and .selector=="RECORD" and .record.invocation_id==$inv' "$fx_read_file" >/dev/null
 
           fx_analysis_key="$REMOTE_WITNESS_RUN-FX-ANALYSIS"
@@ -466,7 +475,8 @@ jobs:
           }')"
           fx_analysis_file="$(mktemp)"
           fx_analysis_code="$(post_remote "$fx_analysis" "$fx_analysis_file")"
-          echo "REMOTE_FX_ANALYSIS_CODE=$fx_analysis_code"\n          test "$fx_analysis_code" = "200"
+          echo "REMOTE_FX_ANALYSIS_CODE=$fx_analysis_code"
+          test "$fx_analysis_code" = "200"
           jq -e '.status=="SUCCESS" and .caller_identity=="READER" and .write_mode=="APPEND_ONLY"' "$fx_analysis_file" >/dev/null
 
           rw_evidence_key="$REMOTE_WITNESS_RUN-RW-EVIDENCE"
@@ -478,7 +488,8 @@ jobs:
           }')"
           rw_evidence_file="$(mktemp)"
           rw_evidence_code="$(post_remote "$rw_evidence" "$rw_evidence_file")"
-          echo "REMOTE_RW_EVIDENCE_CODE=$rw_evidence_code"\n          test "$rw_evidence_code" = "200"
+          echo "REMOTE_RW_EVIDENCE_CODE=$rw_evidence_code"
+          test "$rw_evidence_code" = "200"
           jq -e '.status=="SUCCESS" and .caller_identity=="MONITOR"' "$rw_evidence_file" >/dev/null
 
           rw_revision_key="$REMOTE_WITNESS_RUN-RW-REVISION"
@@ -490,7 +501,8 @@ jobs:
           }')"
           rw_revision_file="$(mktemp)"
           rw_revision_code="$(post_remote "$rw_revision" "$rw_revision_file")"
-          echo "REMOTE_RW_REVISION_CODE=$rw_revision_code"\n          test "$rw_revision_code" = "200"
+          echo "REMOTE_RW_REVISION_CODE=$rw_revision_code"
+          test "$rw_revision_code" = "200"
           jq -e '.status=="SUCCESS" and .caller_identity=="REVISER"' "$rw_revision_file" >/dev/null
 
           rw_valuation_key="$REMOTE_WITNESS_RUN-RW-VALUATION"
@@ -502,7 +514,8 @@ jobs:
           }')"
           rw_valuation_file="$(mktemp)"
           rw_valuation_code="$(post_remote "$rw_valuation" "$rw_valuation_file")"
-          echo "REMOTE_RW_VALUATION_CODE=$rw_valuation_code"\n          test "$rw_valuation_code" = "200"
+          echo "REMOTE_RW_VALUATION_CODE=$rw_valuation_code"
+          test "$rw_valuation_code" = "200"
           jq -e '.status=="SUCCESS" and .caller_identity=="VALUATOR"' "$rw_valuation_file" >/dev/null
 
           rw_decision_key="$REMOTE_WITNESS_RUN-RW-DECISION-RUN"
@@ -514,7 +527,8 @@ jobs:
           }')"
           rw_decision_file="$(mktemp)"
           rw_decision_code="$(post_remote "$rw_decision" "$rw_decision_file")"
-          echo "REMOTE_RW_DECISION_CODE=$rw_decision_code"\n          test "$rw_decision_code" = "200"
+          echo "REMOTE_RW_DECISION_CODE=$rw_decision_code"
+          test "$rw_decision_code" = "200"
           jq -e '.status=="SUCCESS" and .caller_identity=="DECISION"' "$rw_decision_file" >/dev/null
 
           current1="$(jq -cn --arg run "$REMOTE_WITNESS_RUN" '{
@@ -525,7 +539,8 @@ jobs:
           }')"
           current1_file="$(mktemp)"
           current1_code="$(post_remote "$current1" "$current1_file")"
-          echo "REMOTE_CURRENT1_CODE=$current1_code"\n          test "$current1_code" = "200"
+          echo "REMOTE_CURRENT1_CODE=$current1_code"
+          test "$current1_code" = "200"
           jq -e '.status=="SUCCESS" and .caller_identity=="Rolling_Wedge_Workflow" and .version==1 and .previous_version==0 and .replayed==false and (.db_read_at|length>0)' "$current1_file" >/dev/null
 
           current2="$(jq -cn --arg run "$REMOTE_WITNESS_RUN" '{
@@ -536,13 +551,15 @@ jobs:
           }')"
           current2_file="$(mktemp)"
           current2_code="$(post_remote "$current2" "$current2_file")"
-          echo "REMOTE_CURRENT2_CODE=$current2_code"\n          test "$current2_code" = "200"
+          echo "REMOTE_CURRENT2_CODE=$current2_code"
+          test "$current2_code" = "200"
           current2_inv="$(jq -r '.invocation_id' "$current2_file")"
           jq -e '.status=="SUCCESS" and .version==2 and .previous_version==1 and .replayed==false' "$current2_file" >/dev/null
 
           current2_replay_file="$(mktemp)"
           current2_replay_code="$(post_remote "$current2" "$current2_replay_file")"
-          echo "REMOTE_CURRENT2_REPLAY_CODE=$current2_replay_code"\n          test "$current2_replay_code" = "200"
+          echo "REMOTE_CURRENT2_REPLAY_CODE=$current2_replay_code"
+          test "$current2_replay_code" = "200"
           jq -e --arg inv "$current2_inv" '.status=="SUCCESS" and .version==2 and .replayed==true and .invocation_id==$inv' "$current2_replay_file" >/dev/null
 
           stale="$(jq -cn --arg run "$REMOTE_WITNESS_RUN" '{
@@ -559,7 +576,8 @@ jobs:
           current_read='{"task_id":"ROLLING_WEDGE_INVESTMENT","caller_identity":"Rolling_Wedge_Workflow","operation":"READ","dataset_id":"RW_CURRENT_STATE","instance_id":"ENPLAS","selector":{"kind":"CURRENT"}}'
           current_read_file="$(mktemp)"
           current_read_code="$(post_remote "$current_read" "$current_read_file")"
-          echo "REMOTE_CURRENT_READ_CODE=$current_read_code"\n          test "$current_read_code" = "200"
+          echo "REMOTE_CURRENT_READ_CODE=$current_read_code"
+          test "$current_read_code" = "200"
           jq -e '.status=="SUCCESS" and .selector=="CURRENT" and .version==2 and .payload.State=="V2"' "$current_read_file" >/dev/null
 
           append_count="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT COUNT(*) AS c FROM workos_append_records WHERE idempotency_key LIKE '$REMOTE_WITNESS_RUN-%';" --json | jq -r '.[0].results[0].c')"
