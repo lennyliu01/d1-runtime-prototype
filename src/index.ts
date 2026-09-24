@@ -664,7 +664,7 @@ export default {
 
     if (request.method === "GET" && url.pathname === "/") {
       return Response.json({
-        service: "workos-d1-runtime",
+        service: "d1-runtime-prototype",
         status: "alive",
         version: "prototype1-state-cas-core",
       });
@@ -675,13 +675,13 @@ export default {
         const result = await env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
 
         return Response.json({
-          service: "workos-d1-runtime",
+          service: "d1-runtime-prototype",
           d1: result?.ok === 1 ? "connected" : "unexpected_result",
         });
       } catch {
         return Response.json(
           {
-            service: "workos-d1-runtime",
+            service: "d1-runtime-prototype",
             d1: "error",
           },
           { status: 500 },
