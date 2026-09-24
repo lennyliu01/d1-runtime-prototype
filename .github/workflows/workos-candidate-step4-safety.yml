@@ -1,0 +1,276 @@
+name: WorkOS D1 Candidate Step 4 Safety
+
+on:
+  push:
+    branches:
+      - workos-d1-candidate
+    paths:
+      - '.github/workflows/workos-candidate-step4-safety.yml'
+
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
+      CANDIDATE_URL: https://d1-runtime-workos-candidate.lennyliu01.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: workos-d1-candidate
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck before remote mutation
+        run: npm run typecheck
+
+      - name: Verify required secrets
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$RUNTIME_SECRET"
+
+      - name: Apply candidate schema to non-authoritative prototype D1
+        run: npx wrangler d1 migrations apply d1-runtime-prototype-db --remote
+
+      - name: Verify candidate tables exist
+        run: |
+          set -euo pipefail
+          OUT="$(npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('workos_append_records','workos_current_state_versions') ORDER BY name;")"
+          echo "$OUT"
+          echo "$OUT" | grep -F 'workos_append_records'
+          echo "$OUT" | grep -F 'workos_current_state_versions'
+
+      - name: Deploy isolated candidate Worker
+        run: npx wrangler deploy --name d1-runtime-workos-candidate
+
+      - name: Configure candidate runtime secret
+        run: printf '%s' "$RUNTIME_SECRET" | npx wrangler secret put RUNTIME_SECRET --name d1-runtime-workos-candidate
+
+      - name: Run candidate safety matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          post() {
+            local payload="$1"
+            local out="$2"
+            curl -sS -o "$out" -w '%{http_code}'               -X POST "$CANDIDATE_URL/candidate/workos-persistence"               -H "Authorization: Bearer $RUNTIME_SECRET"               -H 'Content-Type: application/json'               --data-binary "$payload"
+          }
+
+          unauth_file="$(mktemp)"
+          unauth_code="$(curl -sS -o "$unauth_file" -w '%{http_code}'             -X POST "$CANDIDATE_URL/candidate/workos-persistence"             -H 'Content-Type: application/json'             --data '{"operation":"READ"}')"
+          test "$unauth_code" = "401"
+          jq -e '.status=="FAILED" and .error=="UNAUTHORIZED"' "$unauth_file" >/dev/null
+
+          denied='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"RW_MONITOR_HARNESS_V1","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":1}}'
+          denied_file="$(mktemp)"
+          denied_code="$(post "$denied" "$denied_file")"
+          test "$denied_code" = "403"
+          jq -e '.status=="FAILED" and .error=="READ_NOT_AUTHORIZED"' "$denied_file" >/dev/null
+
+          run_id="STEP4-$(date +%s)-$RANDOM"
+          k1="$run_id-A1"
+          k2="$run_id-A2"
+          k3="$run_id-A3"
+          idem1="$run_id-IDEM1"
+          idem2="$run_id-IDEM2"
+          idem3="$run_id-IDEM3"
+
+          append1="$(jq -cn --arg rk "$k1" --arg idem "$idem1" --arg rid "$run_id" '{
+            execution_surface:"CHAT",trigger_mode:"HUMAN",
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_COLLECTOR_HARNESS_V1",
+            operation:"WRITE",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
+            record_key:$rk,idempotency_key:$idem,payload:{Run_ID:$rid,Status:"SUCCESS",Probe:"append-1"}
+          }')"
+          a1_file="$(mktemp)"
+          a1_code="$(post "$append1" "$a1_file")"
+          test "$a1_code" = "200"
+          jq -e '.status=="SUCCESS" and .write_mode=="APPEND_ONLY" and .replayed==false and (.invocation_id|length>0) and (.db_written_at|length>0) and (.db_read_at|length>0)' "$a1_file" >/dev/null
+          inv1="$(jq -r '.invocation_id' "$a1_file")"
+          seq1="$(jq -r '.append_seq' "$a1_file")"
+
+          replay_file="$(mktemp)"
+          replay_code="$(post "$append1" "$replay_file")"
+          test "$replay_code" = "200"
+          jq -e --arg inv "$inv1" --argjson seq "$seq1" '.status=="SUCCESS" and .replayed==true and .invocation_id==$inv and .append_seq==$seq' "$replay_file" >/dev/null
+
+          conflict="$(echo "$append1" | jq '.payload.Probe="changed"')"
+          conflict_file="$(mktemp)"
+          conflict_code="$(post "$conflict" "$conflict_file")"
+          test "$conflict_code" = "409"
+          jq -e '.status=="FAILED" and .error=="IDEMPOTENCY_CONFLICT"' "$conflict_file" >/dev/null
+
+          duplicate="$(echo "$append1" | jq --arg idem "$run_id-IDEM-DUP" '.idempotency_key=$idem')"
+          duplicate_file="$(mktemp)"
+          duplicate_code="$(post "$duplicate" "$duplicate_file")"
+          test "$duplicate_code" = "409"
+          jq -e '.status=="FAILED" and .error=="DUPLICATE_RECORD"' "$duplicate_file" >/dev/null
+
+          record_read="$(jq -cn --arg rk "$k1" '{
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_COLLECTOR_HARNESS_V1",
+            operation:"READ",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
+            selector:{kind:"RECORD",record_key:$rk}
+          }')"
+          rr_file="$(mktemp)"
+          rr_code="$(post "$record_read" "$rr_file")"
+          test "$rr_code" = "200"
+          jq -e --arg rk "$k1" --arg inv "$inv1" '.status=="SUCCESS" and .selector=="RECORD" and .record.record_key==$rk and .record.invocation_id==$inv and .record.payload.Probe=="append-1"' "$rr_file" >/dev/null
+
+          for spec in "$k2:$idem2:append-2" "$k3:$idem3:append-3"; do
+            rk="${spec%%:*}"
+            rest="${spec#*:}"
+            idem="${rest%%:*}"
+            probe="${rest#*:}"
+            req="$(jq -cn --arg rk "$rk" --arg idem "$idem" --arg rid "$run_id" --arg probe "$probe" '{
+              task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_COLLECTOR_HARNESS_V1",
+              operation:"WRITE",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
+              record_key:$rk,idempotency_key:$idem,payload:{Run_ID:$rid,Status:"SUCCESS",Probe:$probe}
+            }')"
+            f="$(mktemp)"
+            c="$(post "$req" "$f")"
+            test "$c" = "200"
+            jq -e '.status=="SUCCESS"' "$f" >/dev/null
+          done
+
+          after="$(jq -cn --arg rk "$k1" '{
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_READER_HARNESS_V1",
+            operation:"READ",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
+            selector:{kind:"AFTER",checkpoint_record_key:$rk,limit:2}
+          }')"
+          after_file="$(mktemp)"
+          after_code="$(post "$after" "$after_file")"
+          test "$after_code" = "200"
+          jq -e --arg k2 "$k2" --arg k3 "$k3" '.status=="SUCCESS" and .selector=="AFTER" and (.records|length)==2 and .records[0].record_key==$k2 and .records[1].record_key==$k3' "$after_file" >/dev/null
+
+          tail="$(jq -cn '{
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_READER_HARNESS_V1",
+            operation:"READ",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
+            selector:{kind:"TAIL",limit:2}
+          }')"
+          tail_file="$(mktemp)"
+          tail_code="$(post "$tail" "$tail_file")"
+          test "$tail_code" = "200"
+          jq -e '(.records|length)==2' "$tail_file" >/dev/null
+
+          company="ENPLAS"
+          cur_idem1="$run_id-CUR1"
+          cur_idem2="$run_id-CUR2"
+          cur_init="$(jq -cn --arg idem "$cur_idem1" --arg marker "$run_id" '{
+            task_id:"ROLLING_WEDGE_INVESTMENT",caller_identity:"Rolling_Wedge_Workflow",
+            operation:"WRITE",dataset_id:"RW_CURRENT_STATE",instance_id:"ENPLAS",
+            expected_version:0,idempotency_key:$idem,payload:{Probe:$marker,State:"V1"}
+          }')"
+          ci_file="$(mktemp)"
+          ci_code="$(post "$cur_init" "$ci_file")"
+          if [ "$ci_code" = "409" ]; then
+            current_read='{"task_id":"ROLLING_WEDGE_INVESTMENT","caller_identity":"Rolling_Wedge_Workflow","operation":"READ","dataset_id":"RW_CURRENT_STATE","instance_id":"ENPLAS","selector":{"kind":"CURRENT"}}'
+            cr0_file="$(mktemp)"
+            cr0_code="$(post "$current_read" "$cr0_file")"
+            test "$cr0_code" = "200"
+            base_version="$(jq -r '.version' "$cr0_file")"
+          else
+            test "$ci_code" = "200"
+            jq -e '.status=="SUCCESS" and .version==1 and .previous_version==0 and .replayed==false' "$ci_file" >/dev/null
+            base_version=1
+            ci_replay="$(mktemp)"
+            ci_replay_code="$(post "$cur_init" "$ci_replay")"
+            test "$ci_replay_code" = "200"
+            jq -e '.status=="SUCCESS" and .replayed==true and .version==1' "$ci_replay" >/dev/null
+          fi
+
+          stale_req="$(jq -cn --arg idem "$run_id-CUR-STALE" '{
+            task_id:"ROLLING_WEDGE_INVESTMENT",caller_identity:"Rolling_Wedge_Workflow",
+            operation:"WRITE",dataset_id:"RW_CURRENT_STATE",instance_id:"ENPLAS",
+            expected_version:0,idempotency_key:$idem,payload:{Probe:"stale"}
+          }')"
+          stale_file="$(mktemp)"
+          stale_code="$(post "$stale_req" "$stale_file")"
+          test "$stale_code" = "409"
+          jq -e '.status=="FAILED" and .error=="STALE_STATE"' "$stale_file" >/dev/null
+
+          transition="$(jq -cn --arg idem "$cur_idem2" --argjson ev "$base_version" --arg marker "$run_id" '{
+            task_id:"ROLLING_WEDGE_INVESTMENT",caller_identity:"Rolling_Wedge_Workflow",
+            operation:"WRITE",dataset_id:"RW_CURRENT_STATE",instance_id:"ENPLAS",
+            expected_version:$ev,idempotency_key:$idem,payload:{Probe:$marker,State:"NEXT"}
+          }')"
+          tr_file="$(mktemp)"
+          tr_code="$(post "$transition" "$tr_file")"
+          test "$tr_code" = "200"
+          next_version="$(jq -r '.version' "$tr_file")"
+          test "$next_version" -eq "$((base_version+1))"
+          jq -e '.status=="SUCCESS" and .replayed==false and (.db_read_at|length>0)' "$tr_file" >/dev/null
+          tr_inv="$(jq -r '.invocation_id' "$tr_file")"
+
+          tr_replay_file="$(mktemp)"
+          tr_replay_code="$(post "$transition" "$tr_replay_file")"
+          test "$tr_replay_code" = "200"
+          jq -e --arg inv "$tr_inv" --argjson v "$next_version" '.status=="SUCCESS" and .replayed==true and .invocation_id==$inv and .version==$v' "$tr_replay_file" >/dev/null
+
+          current_read='{"task_id":"ROLLING_WEDGE_INVESTMENT","caller_identity":"Rolling_Wedge_Workflow","operation":"READ","dataset_id":"RW_CURRENT_STATE","instance_id":"ENPLAS","selector":{"kind":"CURRENT"}}'
+          cr_file="$(mktemp)"
+          cr_code="$(post "$current_read" "$cr_file")"
+          test "$cr_code" = "200"
+          jq -e --argjson v "$next_version" --arg marker "$run_id" '.status=="SUCCESS" and .selector=="CURRENT" and .version==$v and .payload.Probe==$marker' "$cr_file" >/dev/null
+
+          cw1="$(jq -cn --arg idem "$run_id-CW1" --argjson ev "$next_version" '{
+            task_id:"ROLLING_WEDGE_INVESTMENT",caller_identity:"Rolling_Wedge_Workflow",
+            operation:"WRITE",dataset_id:"RW_CURRENT_STATE",instance_id:"ENPLAS",
+            expected_version:$ev,idempotency_key:$idem,payload:{Probe:"compete-1"}
+          }')"
+          cw2="$(jq -cn --arg idem "$run_id-CW2" --argjson ev "$next_version" '{
+            task_id:"ROLLING_WEDGE_INVESTMENT",caller_identity:"Rolling_Wedge_Workflow",
+            operation:"WRITE",dataset_id:"RW_CURRENT_STATE",instance_id:"ENPLAS",
+            expected_version:$ev,idempotency_key:$idem,payload:{Probe:"compete-2"}
+          }')"
+          c1f="$(mktemp)"; c2f="$(mktemp)"; c1c="$(mktemp)"; c2c="$(mktemp)"
+          (post "$cw1" "$c1f" >"$c1c") & p1=$!
+          (post "$cw2" "$c2f" >"$c2c") & p2=$!
+          wait "$p1"; wait "$p2"
+          code1="$(cat "$c1c")"; code2="$(cat "$c2c")"
+          successes=0; stales=0
+          for pair in "$code1:$c1f" "$code2:$c2f"; do
+            code="${pair%%:*}"; file="${pair#*:}"
+            if [ "$code" = "200" ]; then
+              jq -e '.status=="SUCCESS"' "$file" >/dev/null
+              successes=$((successes+1))
+            elif [ "$code" = "409" ]; then
+              jq -e '.status=="FAILED" and .error=="STALE_STATE"' "$file" >/dev/null
+              stales=$((stales+1))
+            else
+              echo "Unexpected competing-writer status: $code"
+              cat "$file"
+              exit 60
+            fi
+          done
+          test "$successes" -eq 1
+          test "$stales" -eq 1
+
+          amb_key="$run_id-AMB"
+          amb_idem="$run_id-AMB-IDEM"
+          ambiguous="$(jq -cn --arg rk "$amb_key" --arg idem "$amb_idem" '{
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_COLLECTOR_HARNESS_V1",
+            operation:"WRITE",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
+            record_key:$rk,idempotency_key:$idem,payload:{Probe:"ambiguous-outcome"}
+          }')"
+          ignored_file="$(mktemp)"
+          ignored_code="$(post "$ambiguous" "$ignored_file")"
+          test "$ignored_code" = "200"
+          original_amb_inv="$(jq -r '.invocation_id' "$ignored_file")"
+
+          amb_retry_file="$(mktemp)"
+          amb_retry_code="$(post "$ambiguous" "$amb_retry_file")"
+          test "$amb_retry_code" = "200"
+          jq -e --arg inv "$original_amb_inv" '.status=="SUCCESS" and .replayed==true and .invocation_id==$inv' "$amb_retry_file" >/dev/null
+
+          echo "STEP4_SAFETY_RESULT=PASS"
+          echo "RUN_ID=$run_id"
