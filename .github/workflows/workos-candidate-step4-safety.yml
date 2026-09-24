@@ -79,13 +79,30 @@ jobs:
           test "$unauth_code" = "401"
           jq -e '.status=="FAILED" and .error=="UNAUTHORIZED"' "$unauth_file" >/dev/null
 
-          denied='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"RW_MONITOR_HARNESS_V1","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":1}}'
+          denied='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"MONITOR","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":1}}'
           denied_file="$(mktemp)"
           denied_code="$(post "$denied" "$denied_file")"
           test "$denied_code" = "403"
           jq -e '.status=="FAILED" and .error=="READ_NOT_AUTHORIZED"' "$denied_file" >/dev/null
 
-          overbroad='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"FX_POLICY_READER_HARNESS_V1","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":101}}'
+          legacy_reader='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"FX_POLICY_READER_HARNESS_V1","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":1}}'
+          legacy_reader_file="$(mktemp)"
+          legacy_reader_code="$(post "$legacy_reader" "$legacy_reader_file")"
+          test "$legacy_reader_code" = "403"
+          jq -e '.status=="FAILED" and .error=="READ_NOT_AUTHORIZED"' "$legacy_reader_file" >/dev/null
+
+          legacy_collector="$(jq -cn '{
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_COLLECTOR_HARNESS_V1",
+            operation:"WRITE",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
+            record_key:"STEP35-LEGACY-CALLER",idempotency_key:"STEP35-LEGACY-CALLER",
+            payload:{Probe:"legacy-profile-caller-must-fail"}
+          }')"
+          legacy_collector_file="$(mktemp)"
+          legacy_collector_code="$(post "$legacy_collector" "$legacy_collector_file")"
+          test "$legacy_collector_code" = "403"
+          jq -e '.status=="FAILED" and .error=="WRITE_NOT_AUTHORIZED"' "$legacy_collector_file" >/dev/null
+
+          overbroad='{"task_id":"US_JAPAN_FX_POLICY","caller_identity":"READER","operation":"READ","dataset_id":"FX_POLICY_RUN_LOG","instance_id":"SINGLETON","selector":{"kind":"TAIL","limit":101}}'
           overbroad_file="$(mktemp)"
           overbroad_code="$(post "$overbroad" "$overbroad_file")"
           test "$overbroad_code" = "400"
@@ -101,7 +118,7 @@ jobs:
 
           append1="$(jq -cn --arg rk "$k1" --arg idem "$idem1" --arg rid "$run_id" '{
             execution_surface:"CHAT",trigger_mode:"HUMAN",
-            task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_COLLECTOR_HARNESS_V1",
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"COLLECTOR",
             operation:"WRITE",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
             record_key:$rk,idempotency_key:$idem,payload:{Run_ID:$rid,Status:"SUCCESS",Probe:"append-1"}
           }')"
@@ -123,7 +140,7 @@ jobs:
             instance_id:"SINGLETON",
             dataset_id:"FX_POLICY_RUN_LOG",
             operation:"WRITE",
-            caller_identity:"FX_POLICY_COLLECTOR_HARNESS_V1",
+            caller_identity:"COLLECTOR",
             task_id:"US_JAPAN_FX_POLICY",
             trigger_mode:"HUMAN",
             execution_surface:"CHAT",
@@ -147,7 +164,7 @@ jobs:
           jq -e '.status=="FAILED" and .error=="DUPLICATE_RECORD"' "$duplicate_file" >/dev/null
 
           record_read="$(jq -cn --arg rk "$k1" '{
-            task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_COLLECTOR_HARNESS_V1",
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"COLLECTOR",
             operation:"READ",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
             selector:{kind:"RECORD",record_key:$rk}
           }')"
@@ -162,7 +179,7 @@ jobs:
             idem="${rest%%:*}"
             probe="${rest#*:}"
             req="$(jq -cn --arg rk "$rk" --arg idem "$idem" --arg rid "$run_id" --arg probe "$probe" '{
-              task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_COLLECTOR_HARNESS_V1",
+              task_id:"US_JAPAN_FX_POLICY",caller_identity:"COLLECTOR",
               operation:"WRITE",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
               record_key:$rk,idempotency_key:$idem,payload:{Run_ID:$rid,Status:"SUCCESS",Probe:$probe}
             }')"
@@ -173,7 +190,7 @@ jobs:
           done
 
           after="$(jq -cn --arg rk "$k1" '{
-            task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_READER_HARNESS_V1",
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"READER",
             operation:"READ",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
             selector:{kind:"AFTER",checkpoint_record_key:$rk,limit:2}
           }')"
@@ -183,7 +200,7 @@ jobs:
           jq -e --arg k2 "$k2" --arg k3 "$k3" '.status=="SUCCESS" and .selector=="AFTER" and (.records|length)==2 and .records[0].record_key==$k2 and .records[1].record_key==$k3' "$after_file" >/dev/null
 
           tail="$(jq -cn '{
-            task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_READER_HARNESS_V1",
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"READER",
             operation:"READ",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
             selector:{kind:"TAIL",limit:2}
           }')"
@@ -288,7 +305,7 @@ jobs:
           amb_key="$run_id-AMB"
           amb_idem="$run_id-AMB-IDEM"
           ambiguous="$(jq -cn --arg rk "$amb_key" --arg idem "$amb_idem" '{
-            task_id:"US_JAPAN_FX_POLICY",caller_identity:"FX_POLICY_COLLECTOR_HARNESS_V1",
+            task_id:"US_JAPAN_FX_POLICY",caller_identity:"COLLECTOR",
             operation:"WRITE",dataset_id:"FX_POLICY_RUN_LOG",instance_id:"SINGLETON",
             record_key:$rk,idempotency_key:$idem,payload:{Probe:"ambiguous-outcome"}
           }')"
