@@ -48,9 +48,11 @@ jobs:
 
       - name: Verify current D1 equals frozen migration snapshot
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          git show aa4fa0ff8e6367260d3459f026ec15721f02d13e:.step5/step5-source-snapshot-20260924.json > /tmp/step5-snapshot.json
+          gh api "repos/$GITHUB_REPOSITORY/contents/.step5/step5-source-snapshot-20260924.json?ref=aa4fa0ff8e6367260d3459f026ec15721f02d13e" --jq .content | tr -d '\n' | base64 -d > /tmp/step5-snapshot.json
           npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT dataset_id,instance_id,record_key,payload_json FROM workos_append_records ORDER BY append_seq;" --json > /tmp/current-append.json
           npx wrangler d1 execute d1-runtime-prototype-db --remote --command "SELECT dataset_id,instance_id,version,previous_version,payload_json FROM workos_current_state_versions ORDER BY dataset_id,instance_id,version;" --json > /tmp/current-state.json
 
