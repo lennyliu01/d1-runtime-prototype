@@ -380,6 +380,16 @@ jobs:
           jq -e '.success == true' "$SCRIPTS_FILE" >/dev/null
           echo "VISIBLE_SCRIPT_IDS=$(jq -r '[.result[].id] | join(",")' "$SCRIPTS_FILE")"
 
+          PUBLIC_FILE="$(mktemp)"
+          PUBLIC_CODE="$(curl -sS -o "$PUBLIC_FILE" -w '%{http_code}' \
+            "https://d1-runtime-prototype.lennyliu01.workers.dev/d1-check")"
+          echo "PUBLIC_WORKER_HTTP=$PUBLIC_CODE"
+          if jq -e . "$PUBLIC_FILE" >/dev/null 2>&1; then
+            echo "PUBLIC_WORKER_BODY=$(jq -c . "$PUBLIC_FILE")"
+          else
+            echo "PUBLIC_WORKER_BODY_NON_JSON=$(head -c 300 "$PUBLIC_FILE")"
+          fi
+
           WORKERS_FILE="$(mktemp)"
           WORKERS_CODE="$(curl -sS -o "$WORKERS_FILE" -w '%{http_code}' \
             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/workers" \
