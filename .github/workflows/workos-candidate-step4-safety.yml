@@ -1,6 +1,7 @@
 name: WorkOS D1 Candidate Step 4 Safety
 # rerun: control typing + payload canonicalization + isolated adapter target
 # rerun: remaining FX market-state caller projection fixed
+# rerun: reuse existing prototype Worker because token is scoped to that resource
 
 on:
   push:
@@ -18,7 +19,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       RUNTIME_SECRET: ${{ secrets.RUNTIME_SECRET }}
-      CANDIDATE_URL: https://d1-runtime-workos-candidate.lennyliu01.workers.dev
+      CANDIDATE_URL: https://d1-runtime-prototype.lennyliu01.workers.dev
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,11 +53,8 @@ jobs:
           echo "$OUT" | grep -F 'workos_append_records'
           echo "$OUT" | grep -F 'workos_current_state_versions'
 
-      - name: Deploy isolated candidate Worker
-        run: npx wrangler deploy --name d1-runtime-workos-candidate
-
-      - name: Configure candidate runtime secret
-        run: printf '%s' "$RUNTIME_SECRET" | npx wrangler secret put RUNTIME_SECRET --name d1-runtime-workos-candidate
+      - name: Deploy candidate code to existing non-authoritative prototype Worker
+        run: npx wrangler deploy
 
       - name: Run candidate safety matrix
         shell: bash
