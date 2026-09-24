@@ -378,6 +378,28 @@ jobs:
             exit 61
           fi
           jq -e '.success == true' "$SCRIPTS_FILE" >/dev/null
+          echo "VISIBLE_SCRIPT_IDS=$(jq -r '[.result[].id] | join(",")' "$SCRIPTS_FILE")"
+
+          WORKERS_FILE="$(mktemp)"
+          WORKERS_CODE="$(curl -sS -o "$WORKERS_FILE" -w '%{http_code}' \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/workers" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")"
+          echo "WORKERS_BETA_LIST_HTTP=$WORKERS_CODE"
+          if [ "$WORKERS_CODE" = "200" ]; then
+            echo "VISIBLE_WORKER_NAMES=$(jq -r '[.result[] | (.name // .id)] | join(",")' "$WORKERS_FILE")"
+          else
+            jq -c '{success,errors,messages}' "$WORKERS_FILE" || cat "$WORKERS_FILE"
+          fi
+
+          SERVICE_FILE="$(mktemp)"
+          SERVICE_CODE="$(curl -sS -o "$SERVICE_FILE" -w '%{http_code}' \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/d1-runtime-prototype" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")"
+          echo "LEGACY_SERVICE_HTTP=$SERVICE_CODE"
+          if [ "$SERVICE_CODE" != "200" ]; then
+            jq -c '{success,errors,messages}' "$SERVICE_FILE" || cat "$SERVICE_FILE"
+          fi
+
           jq -e '.result | any(.id == "d1-runtime-prototype")' "$SCRIPTS_FILE" >/dev/null
           echo "REMOTE_WORKER_VISIBLE=TRUE"
 
