@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "d1-runtime-prototype",
+  "name": "workos-d1-runtime",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-22",
   "workers_dev": true,
