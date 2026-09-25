@@ -1,0 +1,521 @@
+{
+  "registry_snapshot_id": "RS1_4db623e520bb6155f2d4d89ba33eeac19403c0cc561999b8f43da93bb887f78a",
+  "registry_fingerprint": "4db623e520bb6155f2d4d89ba33eeac19403c0cc561999b8f43da93bb887f78a",
+  "fx": {
+    "task": "US_JAPAN_FX_POLICY",
+    "manifest_id": "MS1_1c51f2547de42d42fd1afe41bbf352c9cbf9b8f200616384854e93584d1842da",
+    "manifest_fingerprint": "1c51f2547de42d42fd1afe41bbf352c9cbf9b8f200616384854e93584d1842da",
+    "entries": [
+      {
+        "dataset_id": "FX_POLICY_ANALYSIS_STATE",
+        "task_id": "US_JAPAN_FX_POLICY",
+        "instance_id": "SINGLETON",
+        "exact_file_id": "",
+        "logical_member": "FX_POLICY_ANALYSIS_STATE",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "230740bd7971096fc231684ac9ab869388e141fa4fb54448ec97b5cf83099326",
+        "projection_fingerprint": "163b1556c277cbfb5d957aff391f323d7eb355613ce935e65d3d28615ee39f03",
+        "dynamic_instance": false,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "",
+        "writer_scopes": [
+          {
+            "writer_id": "READER",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "FX_POLICY_EVIDENCE_LOG",
+        "task_id": "US_JAPAN_FX_POLICY",
+        "instance_id": "SINGLETON",
+        "exact_file_id": "",
+        "logical_member": "FX_POLICY_EVIDENCE_LOG",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "748a4f056afe8a4cba44c38a48ef1e4008753b899e32819733d746a2e8d8f60e",
+        "projection_fingerprint": "4995d8ab0818b8c8448ab36a24aa0c7667326cf65990e65b51483af0be30af88",
+        "dynamic_instance": false,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "",
+        "writer_scopes": [
+          {
+            "writer_id": "COLLECTOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "FX_POLICY_MARKET_STATE",
+        "task_id": "US_JAPAN_FX_POLICY",
+        "instance_id": "SINGLETON",
+        "exact_file_id": "",
+        "logical_member": "FX_POLICY_MARKET_STATE",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "0b613e535c801801d554dc49bbe39d61c792bd8adbaf3897b27072d22aafd3f1",
+        "projection_fingerprint": "56a487c3528b989a3d341d9572d0e2fadadf608116c9f3cd2394812863f4602e",
+        "dynamic_instance": false,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "",
+        "writer_scopes": [
+          {
+            "writer_id": "COLLECTOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "FX_POLICY_RUN_LOG",
+        "task_id": "US_JAPAN_FX_POLICY",
+        "instance_id": "SINGLETON",
+        "exact_file_id": "",
+        "logical_member": "FX_POLICY_RUN_LOG",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "ecb31c8ad48da7fb3f38bf2ba7475725c885b906813eeacf230c57ed4f4481e9",
+        "projection_fingerprint": "45c3ef8faf6605397b95d3066ea276a003cf588d1cc304f94eed996279b9d15f",
+        "dynamic_instance": false,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "",
+        "writer_scopes": [
+          {
+            "writer_id": "COLLECTOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      }
+    ]
+  },
+  "rw": {
+    "task": "ROLLING_WEDGE_INVESTMENT",
+    "manifest_id": "MS1_daee57929f631084d82993e089c476eb1412a338ec0b3bb1eedd4153950ee4ca",
+    "manifest_fingerprint": "daee57929f631084d82993e089c476eb1412a338ec0b3bb1eedd4153950ee4ca",
+    "entries": [
+      {
+        "dataset_id": "RW_COMPANY_REGISTRY",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "SINGLETON",
+        "exact_file_id": "18rsNXrvu0I-xcYb2dwG6lMmAYWxanwyu",
+        "logical_member": "Companies_Baseline.md",
+        "write_mode": "GOVERNED_CURRENT",
+        "contract_fingerprint": "b49ff1bc68e8d79655622bf36c860111f887a166f56f743ed244d9ebe7d5241d",
+        "projection_fingerprint": "21e789382d514946b0fbfebce103138364e389b57d74a13714b2c77ebf21e250",
+        "dynamic_instance": false,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "",
+        "writer_scopes": [
+          {
+            "writer_id": "ROLLING_WEDGE_GOVERNANCE",
+            "operations": [
+              "GOVERNED_CURRENT"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_CURRENT_STATE",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "ENPLAS",
+        "exact_file_id": "",
+        "logical_member": "RW_CURRENT_STATE",
+        "write_mode": "STRUCTURED_CURRENT_STATE",
+        "contract_fingerprint": "ddf697bdeefa21d669e2ba8c02e12fe056e20b2cdb04ff29df9b0cb1bacadb4e",
+        "projection_fingerprint": "15047859d04f93fcd64e126244f53153aee4473efbfa9dc7a419038330105481",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "Rolling_Wedge_Workflow",
+            "operations": [
+              "CONDITIONAL_CURRENT_STATE"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_CURRENT_STATE",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "FIGMA",
+        "exact_file_id": "",
+        "logical_member": "RW_CURRENT_STATE",
+        "write_mode": "STRUCTURED_CURRENT_STATE",
+        "contract_fingerprint": "ddf697bdeefa21d669e2ba8c02e12fe056e20b2cdb04ff29df9b0cb1bacadb4e",
+        "projection_fingerprint": "15047859d04f93fcd64e126244f53153aee4473efbfa9dc7a419038330105481",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "Rolling_Wedge_Workflow",
+            "operations": [
+              "CONDITIONAL_CURRENT_STATE"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_CURRENT_STATE",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "SERVICENOW",
+        "exact_file_id": "",
+        "logical_member": "RW_CURRENT_STATE",
+        "write_mode": "STRUCTURED_CURRENT_STATE",
+        "contract_fingerprint": "ddf697bdeefa21d669e2ba8c02e12fe056e20b2cdb04ff29df9b0cb1bacadb4e",
+        "projection_fingerprint": "15047859d04f93fcd64e126244f53153aee4473efbfa9dc7a419038330105481",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "Rolling_Wedge_Workflow",
+            "operations": [
+              "CONDITIONAL_CURRENT_STATE"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_EVIDENCE_HISTORY",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "ENPLAS",
+        "exact_file_id": "",
+        "logical_member": "RW_EVIDENCE_HISTORY",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "903451022df6be38b93181613109ce81fb8bddda8537fc38034d56e349fadb85",
+        "projection_fingerprint": "7211fe065607b0e79a9146416be2bb9719d682fc2ae4436a2130d8540a841d90",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "MONITOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_EVIDENCE_HISTORY",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "FIGMA",
+        "exact_file_id": "",
+        "logical_member": "RW_EVIDENCE_HISTORY",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "903451022df6be38b93181613109ce81fb8bddda8537fc38034d56e349fadb85",
+        "projection_fingerprint": "7211fe065607b0e79a9146416be2bb9719d682fc2ae4436a2130d8540a841d90",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "MONITOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_EVIDENCE_HISTORY",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "SERVICENOW",
+        "exact_file_id": "",
+        "logical_member": "RW_EVIDENCE_HISTORY",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "903451022df6be38b93181613109ce81fb8bddda8537fc38034d56e349fadb85",
+        "projection_fingerprint": "7211fe065607b0e79a9146416be2bb9719d682fc2ae4436a2130d8540a841d90",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "MONITOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_REVISION_HISTORY",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "ENPLAS",
+        "exact_file_id": "",
+        "logical_member": "RW_REVISION_HISTORY",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "8a951531964664ba88f8acd954e6defc6feb797ec600c2d79f8a754196c54bce",
+        "projection_fingerprint": "c4abb99506cbb30fee08a750b0deb2b8ca9eee390a90008f8ed0368f0ca07dd2",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "REVISER",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_REVISION_HISTORY",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "FIGMA",
+        "exact_file_id": "",
+        "logical_member": "RW_REVISION_HISTORY",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "8a951531964664ba88f8acd954e6defc6feb797ec600c2d79f8a754196c54bce",
+        "projection_fingerprint": "c4abb99506cbb30fee08a750b0deb2b8ca9eee390a90008f8ed0368f0ca07dd2",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "REVISER",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_REVISION_HISTORY",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "SERVICENOW",
+        "exact_file_id": "",
+        "logical_member": "RW_REVISION_HISTORY",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "8a951531964664ba88f8acd954e6defc6feb797ec600c2d79f8a754196c54bce",
+        "projection_fingerprint": "c4abb99506cbb30fee08a750b0deb2b8ca9eee390a90008f8ed0368f0ca07dd2",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "REVISER",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_RUN_LOG",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "ENPLAS",
+        "exact_file_id": "",
+        "logical_member": "RW_RUN_LOG",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "ac46bb6c54985e8ebedb534b40895283d794bfac284538de84d0a2d849d0608b",
+        "projection_fingerprint": "9bb41364c29fbc7469018215cf2cb51fddbbcc7a15f9bb6f9f6da5d0a700aa23",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "DECISION",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          },
+          {
+            "writer_id": "MONITOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          },
+          {
+            "writer_id": "REVISER",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          },
+          {
+            "writer_id": "VALUATOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_RUN_LOG",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "FIGMA",
+        "exact_file_id": "",
+        "logical_member": "RW_RUN_LOG",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "ac46bb6c54985e8ebedb534b40895283d794bfac284538de84d0a2d849d0608b",
+        "projection_fingerprint": "9bb41364c29fbc7469018215cf2cb51fddbbcc7a15f9bb6f9f6da5d0a700aa23",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "DECISION",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          },
+          {
+            "writer_id": "MONITOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          },
+          {
+            "writer_id": "REVISER",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          },
+          {
+            "writer_id": "VALUATOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_RUN_LOG",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "SERVICENOW",
+        "exact_file_id": "",
+        "logical_member": "RW_RUN_LOG",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "ac46bb6c54985e8ebedb534b40895283d794bfac284538de84d0a2d849d0608b",
+        "projection_fingerprint": "9bb41364c29fbc7469018215cf2cb51fddbbcc7a15f9bb6f9f6da5d0a700aa23",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "DECISION",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          },
+          {
+            "writer_id": "MONITOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          },
+          {
+            "writer_id": "REVISER",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          },
+          {
+            "writer_id": "VALUATOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_VALUATION_HISTORY",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "ENPLAS",
+        "exact_file_id": "",
+        "logical_member": "RW_VALUATION_HISTORY",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "1a2492457aec918ca56d13d178bf422274c00e00ddc5b90ea257e11d9a261439",
+        "projection_fingerprint": "d25121079a0ac8df6b5c72663b949514ad555f34df82ff9883ce084a2eeeb385",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "VALUATOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_VALUATION_HISTORY",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "FIGMA",
+        "exact_file_id": "",
+        "logical_member": "RW_VALUATION_HISTORY",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "1a2492457aec918ca56d13d178bf422274c00e00ddc5b90ea257e11d9a261439",
+        "projection_fingerprint": "d25121079a0ac8df6b5c72663b949514ad555f34df82ff9883ce084a2eeeb385",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "VALUATOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      },
+      {
+        "dataset_id": "RW_VALUATION_HISTORY",
+        "task_id": "ROLLING_WEDGE_INVESTMENT",
+        "instance_id": "SERVICENOW",
+        "exact_file_id": "",
+        "logical_member": "RW_VALUATION_HISTORY",
+        "write_mode": "APPEND_ONLY",
+        "contract_fingerprint": "1a2492457aec918ca56d13d178bf422274c00e00ddc5b90ea257e11d9a261439",
+        "projection_fingerprint": "d25121079a0ac8df6b5c72663b949514ad555f34df82ff9883ce084a2eeeb385",
+        "dynamic_instance": true,
+        "business_authority_state": "ACTIVE",
+        "coverage_evidence_fingerprint": "a7971f4dc18bb5f707a4e5e3ae15a8aec3a380c80a32c7c61ee890ef41ed34e1",
+        "writer_scopes": [
+          {
+            "writer_id": "VALUATOR",
+            "operations": [
+              "APPEND_ONLY"
+            ],
+            "fields": null
+          }
+        ]
+      }
+    ]
+  }
+}
